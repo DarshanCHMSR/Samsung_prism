@@ -38,7 +38,7 @@ class Config:
     
     # Security Configuration
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-    ENABLE_CORS = os.environ.get('ENABLE_CORS', 'False').lower() == 'true'
+    ENABLE_CORS = os.environ.get('ENABLE_CORS', 'True').lower() == 'true'
     
     # Performance Configuration
     FEATURE_CACHE_ENABLED = os.environ.get('FEATURE_CACHE_ENABLED', 'True').lower() == 'true'

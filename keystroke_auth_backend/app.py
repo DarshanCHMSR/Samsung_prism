@@ -32,7 +32,14 @@ app.config.from_object(config)
 
 # Configure CORS if enabled
 if config.ENABLE_CORS:
-    CORS(app)
+    CORS(app, resources={
+        r"/*": {
+            "origins": ["http://localhost:*", "http://127.0.0.1:*", "http://10.0.2.2:*"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization", "Accept"],
+            "supports_credentials": True
+        }
+    })
 
 # Configure logging
 logging.basicConfig(
@@ -516,6 +523,13 @@ def get_user_info(user_id):
     except Exception as e:
         print(f"Error getting user info for {user_id}: {e}")
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
+
+@app.route('/', methods=['OPTIONS'])
+@app.route('/<path:path>', methods=['OPTIONS'])
+def handle_options(path=None):
+    """Handle CORS preflight requests"""
+    return '', 200
 
 
 @app.errorhandler(404)
