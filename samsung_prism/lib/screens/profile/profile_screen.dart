@@ -754,7 +754,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.pop(context);
               final authProvider = Provider.of<AuthProvider>(context, listen: false);
               authProvider.signOut();
-              Navigator.pushReplacementNamed(context, '/login');
+              Navigator.pushReplacementNamed(context, '/enhanced-login');
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Logout', style: TextStyle(color: Colors.white)),

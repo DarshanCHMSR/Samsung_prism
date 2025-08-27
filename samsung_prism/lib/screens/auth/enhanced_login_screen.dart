@@ -7,7 +7,6 @@ import '../../utils/app_colors.dart';
 import '../../widgets/keystroke_recorder.dart';
 import '../../models/keystroke_models.dart';
 import 'signup_screen.dart';
-import '../keystroke/keystroke_setup_screen.dart';
 
 class EnhancedLoginScreen extends StatefulWidget {
   const EnhancedLoginScreen({super.key});
@@ -60,9 +59,25 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
         return;
       }
 
-      // Step 2: Keystroke dynamics authentication (if enabled and configured)
-      if (_useKeystrokeDynamics && keystrokeProvider.isConfigured && _passwordKeystrokeSession != null) {
+      // Step 2: Keystroke dynamics authentication (if enabled)
+      if (_useKeystrokeDynamics) {
         final userId = authProvider.user?.uid ?? _emailController.text.trim();
+        
+        // Check if keystroke service is configured
+        if (!keystrokeProvider.isConfigured) {
+          // First time setup - redirect to keystroke setup
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/keystroke-setup');
+          }
+          return;
+        }
+        
+        // Check if we have keystroke data
+        if (_passwordKeystrokeSession == null) {
+          _showError('Please type your password to record keystroke pattern.');
+          await authProvider.signOut(); // Sign out from traditional auth
+          return;
+        }
         
         try {
           // Check if user needs training first
@@ -91,8 +106,9 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
             return;
           }
         } catch (e) {
-          // Keystroke authentication error, but allow traditional login
+          // Keystroke authentication error, but allow traditional login for now
           print('Keystroke authentication error: $e');
+          _showError('Keystroke authentication error: ${e.toString()}. Proceeding with traditional login.');
         }
       }
 
@@ -123,12 +139,19 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
   Widget _buildKeystrokeStatus() {
     return Consumer<KeystrokeAuthProvider>(
       builder: (context, keystrokeProvider, child) {
+        String status;
+        Color color;
+        IconData icon;
+        
         if (!keystrokeProvider.isConfigured) {
-          return const SizedBox.shrink();
+          status = 'Keystroke recording enabled - Setup required';
+          color = AppColors.warning;
+          icon = Icons.warning_amber;
+        } else {
+          status = keystrokeProvider.getStatusMessage();
+          color = keystrokeProvider.getStatusColor();
+          icon = _getStatusIcon(keystrokeProvider.state.status);
         }
-
-        final status = keystrokeProvider.getStatusMessage();
-        final color = keystrokeProvider.getStatusColor();
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -141,7 +164,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                _getStatusIcon(keystrokeProvider.state.status),
+                icon,
                 size: 16,
                 color: color,
               ),
@@ -187,9 +210,9 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.primary,
-              AppColors.primary.withOpacity(0.8),
-              AppColors.accent,
+              AppColors.primaryBlue,
+              AppColors.primaryBlue.withOpacity(0.8),
+              AppColors.secondaryBlue,
             ],
           ),
         ),
@@ -249,7 +272,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                             style: GoogleFonts.poppins(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                              color: AppColors.textDark,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -281,7 +304,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                           // Password Field with Keystroke Recording
                           Consumer<KeystrokeAuthProvider>(
                             builder: (context, keystrokeProvider, child) {
-                              if (_useKeystrokeDynamics && keystrokeProvider.isConfigured) {
+                              if (_useKeystrokeDynamics) {
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -415,7 +438,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                               return ElevatedButton(
                                 onPressed: isLoading ? null : _login,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
+                                  backgroundColor: AppColors.primaryBlue,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
@@ -451,7 +474,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                             child: Text(
                               'Forgot Password?',
                               style: GoogleFonts.poppins(
-                                color: AppColors.primary,
+                                color: AppColors.primaryBlue,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -465,7 +488,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                               Text(
                                 "Don't have an account? ",
                                 style: GoogleFonts.poppins(
-                                  color: AppColors.textSecondary,
+                                  color: AppColors.textGrey,
                                 ),
                               ),
                               GestureDetector(
@@ -480,7 +503,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                                 child: Text(
                                   'Sign Up',
                                   style: GoogleFonts.poppins(
-                                    color: AppColors.primary,
+                                    color: AppColors.primaryBlue,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
