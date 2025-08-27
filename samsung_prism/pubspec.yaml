@@ -59,6 +59,9 @@ dependencies:
   shared_preferences: ^2.3.2
   intl: ^0.19.0
   
+  # HTTP client for API calls
+  http: ^1.1.0
+  
   # Icons and UI components
   font_awesome_flutter: ^10.7.0
   flutter_svg: ^2.0.10+1
