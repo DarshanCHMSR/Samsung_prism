@@ -14,11 +14,15 @@ import 'screens/transactions/transaction_history_screen.dart';
 import 'screens/location/location_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/keystroke/keystroke_setup_screen.dart';
+import 'screens/security/trusted_locations_screen.dart';
+import 'screens/security/security_alerts_screen.dart';
+import 'screens/security/secure_transaction_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/balance_provider.dart';
 import 'providers/transaction_provider.dart';
 import 'providers/location_provider.dart';
 import 'providers/keystroke_auth_provider.dart';
+import 'providers/location_security_provider.dart';
 import 'utils/app_colors.dart';
 
 void main() async {
@@ -41,6 +45,7 @@ class SamsungPrismBankingApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ChangeNotifierProvider(create: (_) => LocationProvider()),
         ChangeNotifierProvider(create: (_) => KeystrokeAuthProvider()),
+        ChangeNotifierProvider(create: (_) => LocationSecurityProvider()),
       ],
       child: MaterialApp(
         title: 'Samsung Prism Banking',
@@ -90,6 +95,9 @@ class SamsungPrismBankingApp extends StatelessWidget {
           '/location': (context) => const LocationScreen(),
           '/profile': (context) => const ProfileScreen(),
           '/keystroke-setup': (context) => const KeystrokeSetupScreen(),
+          '/trusted-locations': (context) => const TrustedLocationsScreen(),
+          '/security-alerts': (context) => const SecurityAlertsScreen(),
+          '/secure-transaction': (context) => const SecureTransactionScreen(),
         },
       ),
     );

@@ -35,6 +35,51 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen>
     transactionProvider.fetchTransactions();
   }
 
+  void _addTestTransaction() async {
+    final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+    
+    final testTransactions = [
+      {
+        'amount': 500.0,
+        'description': 'Test Payment to Merchant',
+        'type': TransactionType.sent,
+        'recipientName': 'Test Merchant',
+      },
+      {
+        'amount': 1000.0,
+        'description': 'Test Transfer to Friend',
+        'type': TransactionType.sent,
+        'recipientAccount': '1234567890',
+        'recipientName': 'John Doe',
+      },
+      {
+        'amount': 250.0,
+        'description': 'Test Received Payment',
+        'type': TransactionType.received,
+        'recipientName': 'Jane Smith',
+      },
+    ];
+
+    for (final transaction in testTransactions) {
+      await transactionProvider.addTransaction(
+        amount: transaction['amount'] as double,
+        description: transaction['description'] as String,
+        type: transaction['type'] as TransactionType,
+        recipientAccount: transaction['recipientAccount'] as String?,
+        recipientName: transaction['recipientName'] as String?,
+      );
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Test transactions added!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,6 +93,11 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen>
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            onPressed: _addTestTransaction,
+            tooltip: 'Add Test Transactions',
+          ),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterDialog,
@@ -192,6 +242,56 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen>
           return const Center(child: CircularProgressIndicator());
         }
 
+        // Show error state
+        if (transactionProvider.errorMessage != null) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading transactions',
+                    style: GoogleFonts.poppins(
+                      color: AppColors.error,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    transactionProvider.errorMessage!,
+                    style: GoogleFonts.poppins(
+                      color: AppColors.textGrey,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      transactionProvider.clearError();
+                      _loadTransactions();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                    child: Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         final transactions = transactionProvider.transactions;
 
         if (transactions.isEmpty) {
@@ -218,6 +318,46 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen>
       builder: (context, transactionProvider, child) {
         if (transactionProvider.isLoading) {
           return const Center(child: CircularProgressIndicator());
+        }
+
+        // Show error state
+        if (transactionProvider.errorMessage != null) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading transactions',
+                    style: GoogleFonts.poppins(
+                      color: AppColors.error,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      transactionProvider.clearError();
+                      _loadTransactions();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
 
         final transactions = transactionProvider.getTransactionsByType(type);
@@ -355,33 +495,54 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen>
   }
 
   Widget _buildEmptyState({String? message}) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 80,
-            color: AppColors.textLight,
+    return Consumer<TransactionProvider>(
+      builder: (context, transactionProvider, child) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.receipt_long_outlined,
+                size: 80,
+                color: AppColors.textLight,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                message ?? 'No transactions found',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: AppColors.textGrey,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your transaction history will appear here',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: AppColors.textLight,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Total transactions in database: ${transactionProvider.transactionCount}',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: AppColors.textGrey,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _loadTransactions,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text('Refresh'),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            message ?? 'No transactions found',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              color: AppColors.textGrey,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Your transaction history will appear here',
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              color: AppColors.textLight,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

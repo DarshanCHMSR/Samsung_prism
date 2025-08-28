@@ -303,6 +303,32 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionCard(
+                  'Secure Transfer',
+                  FontAwesomeIcons.shield,
+                  Colors.green,
+                  () {
+                    Navigator.pushNamed(context, '/secure-transaction');
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionCard(
+                  'Security Alerts',
+                  FontAwesomeIcons.bell,
+                  Colors.red,
+                  () {
+                    Navigator.pushNamed(context, '/security-alerts');
+                  },
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -389,6 +415,62 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context, transactionProvider, child) {
               final recentTransactions = transactionProvider.getRecentTransactions(3);
               
+              // Show loading state
+              if (transactionProvider.isLoading) {
+                return Container(
+                  padding: const EdgeInsets.all(40),
+                  child: const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+              
+              // Show error state
+              if (transactionProvider.errorMessage != null) {
+                return Container(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error loading transactions',
+                        style: GoogleFonts.poppins(
+                          color: AppColors.error,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        transactionProvider.errorMessage!,
+                        style: GoogleFonts.poppins(
+                          color: AppColors.textGrey,
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          transactionProvider.clearError();
+                          _loadData();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryBlue,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text('Retry'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              
               if (recentTransactions.isEmpty) {
                 return Container(
                   padding: const EdgeInsets.all(40),
@@ -407,6 +489,23 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: AppColors.textGrey,
                             fontSize: 16,
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Total transactions: ${transactionProvider.transactionCount}',
+                          style: GoogleFonts.poppins(
+                            color: AppColors.textGrey,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadData,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryBlue,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: Text('Refresh'),
                         ),
                       ],
                     ),

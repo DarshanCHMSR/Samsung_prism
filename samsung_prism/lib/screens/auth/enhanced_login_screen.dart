@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/keystroke_auth_provider.dart';
+import '../../providers/location_security_provider.dart';
 import '../../utils/app_colors.dart';
 import '../../widgets/keystroke_recorder.dart';
 import '../../models/keystroke_models.dart';
@@ -167,10 +168,24 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
   }
 
   Future<void> _performTraditionalLogin(AuthProvider authProvider) async {
+    final locationProvider = Provider.of<LocationSecurityProvider>(context, listen: false);
+    final email = _emailController.text.trim();
+    
     final traditionalAuthSuccess = await authProvider.signInWithEmailAndPassword(
-      _emailController.text.trim(),
+      email,
       _passwordController.text,
     );
+
+    // Record login attempt regardless of success/failure
+    try {
+      await locationProvider.recordLoginAttempt(
+        userId: email, // Use email as userId for now
+        isSuccessful: traditionalAuthSuccess,
+        authMethod: _useKeystrokeDynamics ? 'password+keystroke' : 'password',
+      );
+    } catch (e) {
+      print('Failed to record login attempt: $e');
+    }
 
     if (!traditionalAuthSuccess) {
       if (mounted) {
@@ -179,7 +194,16 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
       return;
     }
 
-    // Success - navigate to home
+    // Success - initialize location security for the user
+    try {
+      if (authProvider.user?.uid != null) {
+        await locationProvider.initializeForUser(authProvider.user!.uid);
+      }
+    } catch (e) {
+      print('Failed to initialize location security: $e');
+    }
+
+    // Navigate to home
     if (mounted) {
       Navigator.pushReplacementNamed(context, '/home');
     }

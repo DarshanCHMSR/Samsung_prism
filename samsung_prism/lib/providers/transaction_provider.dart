@@ -52,27 +52,58 @@ class TransactionProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   
+  // Add a method to get recent transactions count for debugging
+  int get transactionCount => _transactions.length;
+  
   Future<void> fetchTransactions() async {
     try {
       _setLoading(true);
+      _clearError();
       final User? user = _auth.currentUser;
       
-      if (user != null) {
-        final QuerySnapshot snapshot = await _firestore
-            .collection('transactions')
-            .where('userId', isEqualTo: user.uid)
-            .orderBy('timestamp', descending: true)
-            .limit(50)
-            .get();
-        
-        _transactions = snapshot.docs
-            .map((doc) => Transaction.fromFirestore(doc))
-            .toList();
+      if (user == null) {
+        _setError('No user logged in');
+        _setLoading(false);
+        return;
       }
+
+      print('Fetching transactions for user: ${user.uid}');
+      
+      final QuerySnapshot snapshot = await _firestore
+          .collection('transactions')
+          .where('userId', isEqualTo: user.uid)
+          .get();
+      
+      print('Found ${snapshot.docs.length} transaction documents');
+      
+      // Convert to Transaction objects and sort in memory to avoid composite index requirement
+      var transactions = snapshot.docs
+          .map((doc) {
+            try {
+              return Transaction.fromFirestore(doc);
+            } catch (e) {
+              print('Error parsing transaction ${doc.id}: $e');
+              return null;
+            }
+          })
+          .whereType<Transaction>()
+          .toList();
+      
+      // Sort by timestamp descending
+      transactions.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      
+      // Apply limit
+      if (transactions.length > 50) {
+        transactions = transactions.take(50).toList();
+      }
+      
+      _transactions = transactions;
+      print('Successfully loaded ${transactions.length} transactions');
       
       _setLoading(false);
     } catch (e) {
-      _setError('Failed to fetch transactions');
+      print('Error fetching transactions: $e');
+      _setError('Failed to fetch transactions: $e');
       _setLoading(false);
     }
   }
@@ -87,24 +118,31 @@ class TransactionProvider with ChangeNotifier {
     try {
       final User? user = _auth.currentUser;
       
-      if (user != null) {
-        await _firestore.collection('transactions').add({
-          'userId': user.uid,
-          'amount': amount,
-          'description': description,
-          'type': type.name,
-          'recipientAccount': recipientAccount,
-          'recipientName': recipientName,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-        
-        // Refresh transactions
-        await fetchTransactions();
-        return true;
+      if (user == null) {
+        _setError('No user logged in');
+        return false;
       }
-      return false;
+      
+      print('Adding transaction: amount=$amount, type=${type.name}, user=${user.uid}');
+      
+      await _firestore.collection('transactions').add({
+        'userId': user.uid,
+        'amount': amount,
+        'description': description,
+        'type': type.name,
+        'recipientAccount': recipientAccount,
+        'recipientName': recipientName,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      
+      print('Transaction added successfully to Firestore');
+      
+      // Refresh transactions
+      await fetchTransactions();
+      return true;
     } catch (e) {
-      _setError('Failed to add transaction');
+      print('Error adding transaction: $e');
+      _setError('Failed to add transaction: $e');
       return false;
     }
   }
@@ -130,6 +168,11 @@ class TransactionProvider with ChangeNotifier {
   
   void _setError(String error) {
     _errorMessage = error;
+    notifyListeners();
+  }
+  
+  void _clearError() {
+    _errorMessage = null;
     notifyListeners();
   }
   
