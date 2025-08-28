@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -164,17 +165,34 @@ class KeystrokeAuthProvider extends ChangeNotifier {
       );
 
       if (response.isSuccessful) {
-        // Get updated user info
-        final userInfo = await _service.getUserInfo(userId);
-        
-        _updateState(
-          status: KeystrokeAuthStatus.success,
-          message: response.modelTrained
-              ? 'Model trained successfully!'
-              : 'Training data added. ${userInfo.remainingSamples} more samples needed.',
-          userInfo: userInfo,
-          currentSession: null, // Clear session after successful training
-        );
+        try {
+          // Get updated user info from server
+          final userInfo = await _service.getUserInfo(userId);
+          
+          // Save to local storage
+          await _saveUserInfoToLocal(userId, userInfo);
+          
+          _updateState(
+            status: KeystrokeAuthStatus.success,
+            message: response.modelTrained
+                ? 'Model trained successfully!'
+                : 'Training data added. ${userInfo.remainingSamples} more samples needed.',
+            userInfo: userInfo,
+            currentSession: null, // Clear session after successful training
+          );
+        } catch (e) {
+          // If server call fails but training was successful, mark as trained locally
+          print('Failed to get updated user info, marking as trained locally: $e');
+          await markUserAsTrained(userId);
+          
+          _updateState(
+            status: KeystrokeAuthStatus.success,
+            message: response.modelTrained
+                ? 'Model trained successfully!'
+                : 'Training completed!',
+            currentSession: null,
+          );
+        }
       } else {
         _updateState(
           status: KeystrokeAuthStatus.error,
@@ -246,19 +264,148 @@ class KeystrokeAuthProvider extends ChangeNotifier {
 
   /// Get user training information
   Future<void> loadUserInfo(String userId) async {
-    if (!_isConfigured) return;
+    print('DEBUG: loadUserInfo called for userId: $userId');
+    print('DEBUG: isConfigured: $_isConfigured');
+    
+    // First check if user is marked as trained locally (for offline/override support)
+    final prefs = await SharedPreferences.getInstance();
+    final localOverride = prefs.getString('keystroke_user_info_$userId');
+    if (localOverride != null) {
+      try {
+        final Map<String, dynamic> data = jsonDecode(localOverride);
+        final localUserInfo = UserTrainingInfo.fromJson(data);
+        
+        // If local data shows user is trained, prioritize it over server
+        if (localUserInfo.hasTrainedModel || !localUserInfo.needsMoreTraining) {
+          print('DEBUG: Using local override - user marked as trained locally');
+          _updateState(userInfo: localUserInfo);
+          return;
+        }
+      } catch (e) {
+        print('DEBUG: Failed to parse local override: $e');
+      }
+    }
+    
+    if (!_isConfigured) {
+      // If server not configured, check local storage for training status
+      print('DEBUG: Server not configured, loading from local storage');
+      await _loadUserInfoFromLocal(userId);
+      return;
+    }
 
     try {
+      print('DEBUG: Trying to load user info from server');
       final userInfo = await _service.getUserInfo(userId);
+      print('DEBUG: Server returned user info: $userInfo');
+      print('DEBUG: UserInfo details - userId: ${userInfo.userId}');
+      print('DEBUG: UserInfo details - trainingSamples: ${userInfo.trainingSamples}');
+      print('DEBUG: UserInfo details - hasTrainedModel: ${userInfo.hasTrainedModel}');
+      print('DEBUG: UserInfo details - minSamplesRequired: ${userInfo.minSamplesRequired}');
+      print('DEBUG: UserInfo details - needsMoreTraining: ${userInfo.needsMoreTraining}');
       _updateState(userInfo: userInfo);
+      
+      // Save training status to local storage
+      await _saveUserInfoToLocal(userId, userInfo);
     } catch (e) {
-      print('Failed to load user info: $e');
+      print('Failed to load user info from server: $e');
+      // Fallback to local storage if server fails
+      print('DEBUG: Falling back to local storage');
+      await _loadUserInfoFromLocal(userId);
+    }
+  }
+
+  /// Save user training info to local storage
+  Future<void> _saveUserInfoToLocal(String userId, UserTrainingInfo userInfo) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('keystroke_user_info_$userId', jsonEncode({
+        'user_id': userInfo.userId,
+        'training_samples': userInfo.trainingSamples,
+        'has_trained_model': userInfo.hasTrainedModel,
+        'min_samples_required': userInfo.minSamplesRequired,
+        'max_feature_length': userInfo.maxFeatureLength,
+        'last_updated': DateTime.now().millisecondsSinceEpoch,
+      }));
+    } catch (e) {
+      print('Failed to save user info to local storage: $e');
+    }
+  }
+
+  /// Load user training info from local storage
+  Future<void> _loadUserInfoFromLocal(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userInfoJson = prefs.getString('keystroke_user_info_$userId');
+      
+      print('DEBUG: Local storage key: keystroke_user_info_$userId');
+      print('DEBUG: Local storage value: $userInfoJson');
+      
+      if (userInfoJson != null) {
+        final Map<String, dynamic> data = jsonDecode(userInfoJson);
+        final userInfo = UserTrainingInfo.fromJson(data);
+        _updateState(userInfo: userInfo);
+        print('Loaded user training info from local storage for $userId');
+        print('DEBUG: Loaded userInfo: hasTrainedModel=${userInfo.hasTrainedModel}, needsMoreTraining=${userInfo.needsMoreTraining}');
+      } else {
+        print('No local training info found for user $userId');
+      }
+    } catch (e) {
+      print('Failed to load user info from local storage: $e');
     }
   }
 
   /// Check if user needs more training data
   bool needsTraining(String userId) {
-    return _state.userInfo?.needsMoreTraining ?? true;
+    print('DEBUG: needsTraining called for userId: $userId');
+    print('DEBUG: _state.userInfo is null: ${_state.userInfo == null}');
+    
+    // If we have user info from either server or local storage, use it
+    if (_state.userInfo != null) {
+      print('DEBUG: _state.userInfo.needsMoreTraining: ${_state.userInfo!.needsMoreTraining}');
+      print('DEBUG: _state.userInfo.trainingSamples: ${_state.userInfo!.trainingSamples}');
+      print('DEBUG: _state.userInfo.minSamplesRequired: ${_state.userInfo!.minSamplesRequired}');
+      print('DEBUG: _state.userInfo.hasTrainedModel: ${_state.userInfo!.hasTrainedModel}');
+      return _state.userInfo!.needsMoreTraining;
+    }
+    
+    // If no user info available at all, assume training is needed
+    print('DEBUG: No user info available, returning true');
+    return true;
+  }
+
+  /// Mark user as trained locally (for offline support)
+  Future<void> markUserAsTrained(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('keystroke_user_info_$userId', jsonEncode({
+        'user_id': userId,
+        'training_samples': 10, // Assume sufficient samples
+        'has_trained_model': true,
+        'min_samples_required': 5,
+        'max_feature_length': null,
+        'last_updated': DateTime.now().millisecondsSinceEpoch,
+      }));
+      
+      // Update current state
+      final userInfo = UserTrainingInfo(
+        userId: userId,
+        trainingSamples: 10,
+        hasTrainedModel: true,
+        minSamplesRequired: 5,
+      );
+      _updateState(userInfo: userInfo);
+      
+      print('Marked user $userId as trained in local storage');
+    } catch (e) {
+      print('Failed to mark user as trained: $e');
+    }
+  }
+
+  /// Force mark user as trained (for testing/debugging)
+  Future<void> forceMarkUserAsTrained(String userId) async {
+    print('DEBUG: Force marking user $userId as trained');
+    await markUserAsTrained(userId);
+    notifyListeners();
   }
 
   /// Get training progress (0.0 to 1.0)

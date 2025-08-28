@@ -1,0 +1,13 @@
+{
+  "model_type": "IsolationForest",
+  "version": "1.0",
+  "feature_extraction_method": "keystroke_dynamics",
+  "training_parameters": {
+    "n_estimators": 100,
+    "contamination": 0.1,
+    "random_state": 42
+  },
+  "max_feature_length": 18,
+  "created_at": "2025-08-28T20:35:49.186362",
+  "user_id": "iDRNcQFPVUX1Dkw0cPT3V0SFSrt2"
+}
