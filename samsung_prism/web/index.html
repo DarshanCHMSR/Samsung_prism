@@ -31,8 +31,63 @@
 
   <title>samsung_prism</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- Preconnect to external resources -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  
+  <!-- Font fallbacks for offline -->
+  <style>
+    @font-face {
+      font-family: 'Roboto';
+      font-style: normal;
+      font-weight: 400;
+      src: local('Roboto'), local('Roboto-Regular'), url('assets/fonts/Roboto-Regular.ttf') format('truetype');
+    }
+    
+    body {
+      font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    /* Loading indicator */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: 'Roboto', sans-serif;
+    }
+  </style>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
-</body>
+  <!-- Loading indicator -->
+  <div class="loading" id="loading">
+    <div>Loading Samsung Prism...</div>
+  </div>
+  
+  <script>
+    // Hide loading indicator when Flutter app loads
+    window.addEventListener('flutter-first-frame', function () {
+      const loading = document.getElementById('loading');
+      if (loading) {
+        loading.style.display = 'none';
+      }
+    });
+    
+    // Configure service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('flutter_service_worker.js')
+        .then((registration) => {
+          console.log('Service Worker registered successfully:', registration);
+        })
+        .catch((error) => {
+          console.log('Service Worker registration failed:', error);
+        });
+    }
+  </script>
+  
+  <!-- Offline configuration -->
+  <script src="offline_config.js"></script>
+  
+  <script src="flutter_bootstrap.js" async></script></body>
 </html>
