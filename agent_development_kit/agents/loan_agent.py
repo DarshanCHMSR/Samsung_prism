@@ -97,56 +97,62 @@ class LoanAgent(BaseAgent):
             if not user_data:
                 return AgentResponse(
                     agent_name=self.agent_name,
-                    response_text="To check your loan eligibility, I need your profile information. Please ensure your profile is complete with salary and employment details.",
+                    response_text="To check your loan eligibility, I need your profile information. Please ensure you're logged in.",
                     confidence=0.8
                 )
             
-            # Get user financial info
-            salary = user_data.get('monthly_salary', 0)
-            employment_type = user_data.get('employment_type', 'unknown')
-            credit_score = user_data.get('credit_score', 750)  # Default to good score
+            # Get basic user info (Flutter app stores limited data)
+            full_name = user_data.get('fullName', 'User')
+            account_balance = user_data.get('balance', 0)
             
-            # Determine loan type from query
+            # Since detailed financial info isn't available, provide general eligibility info
             loan_type = self._extract_loan_type(query.query_text)
             
             if loan_type and loan_type in self.loan_types:
-                eligibility = self._calculate_eligibility(salary, employment_type, credit_score, loan_type)
+                loan_info = self.loan_types[loan_type]
                 
-                response_text = f"Loan Eligibility Assessment for {loan_type.title()} Loan:\n\n"
-                
-                if eligibility['eligible']:
-                    response_text += f"✅ You are eligible!\n"
-                    response_text += f"💰 Maximum amount: ₹{eligibility['max_amount']:,.2f}\n"
-                    response_text += f"📊 Interest rate: {eligibility['interest_rate']}% per annum\n"
-                    response_text += f"💳 Credit score: {credit_score}\n"
-                    response_text += f"\nWould you like me to calculate EMI for a specific amount?"
-                else:
-                    response_text += f"❌ Currently not eligible\n"
-                    response_text += f"Reasons: {', '.join(eligibility['reasons'])}\n"
-                    response_text += f"\nTips to improve eligibility:\n"
-                    response_text += f"• Increase monthly income\n• Improve credit score\n• Reduce existing debts"
+                response_text = f"Hi {full_name}! Here's information about {loan_type.title()} Loan eligibility:\n\n"
+                response_text += f"📋 **{loan_type.title()} Loan Details:**\n"
+                response_text += f"• Minimum monthly salary: ₹{loan_info['min_salary']:,}\n"
+                response_text += f"• Maximum loan amount: ₹{loan_info['max_amount']:,}\n"
+                response_text += f"• Interest rate: {loan_info['interest_rate']}% per annum\n\n"
+                response_text += f"� **General Eligibility Criteria:**\n"
+                response_text += f"• Age: 21-60 years\n"
+                response_text += f"• Minimum income as mentioned above\n"
+                response_text += f"• Good credit history\n"
+                response_text += f"• Stable employment (6+ months)\n\n"
+                response_text += f"💡 **Next Steps:**\n"
+                response_text += f"Visit any Samsung Prism branch with required documents for detailed eligibility assessment.\n"
+                response_text += f"Would you like me to calculate EMI for a specific amount?"
                 
                 return AgentResponse(
                     agent_name=self.agent_name,
                     response_text=response_text,
                     confidence=0.9,
-                    action_taken="eligibility_check",
-                    data=eligibility
+                    action_taken="loan_info_provided",
+                    data={"loan_type": loan_type, "loan_details": loan_info}
                 )
             else:
-                # General eligibility
-                eligible_loans = []
-                for loan_type, criteria in self.loan_types.items():
-                    if salary >= criteria['min_salary']:
-                        eligible_loans.append(loan_type)
+                # General loan information
+                response_text = f"Hi {full_name}! Here are our available loan options:\n\n"
                 
-                if eligible_loans:
-                    response_text = f"Based on your monthly salary of ₹{salary:,.2f}, you're eligible for:\n\n"
-                    for loan in eligible_loans:
-                        max_amount = min(salary * 60, self.loan_types[loan]['max_amount'])  # 60x salary rule
-                        response_text += f"• {loan.title()} Loan: Up to ₹{max_amount:,.2f}\n"
-                else:
-                    response_text = "Based on current information, you may need to meet minimum salary requirements for loan eligibility. Please contact our loan officer for personalized assistance."
+                for loan_name, loan_info in self.loan_types.items():
+                    response_text += f"🏦 **{loan_name.title()} Loan:**\n"
+                    response_text += f"   • Amount: Up to ₹{loan_info['max_amount']:,}\n"
+                    response_text += f"   • Rate: {loan_info['interest_rate']}% per annum\n"
+                    response_text += f"   • Min. salary: ₹{loan_info['min_salary']:,}\n\n"
+                
+                response_text += f"💡 **To check specific eligibility:**\n"
+                response_text += f"Visit our branch or call customer care for personalized assessment.\n"
+                response_text += f"Ask me about specific loan types like 'personal loan' or 'home loan'!"
+                
+                return AgentResponse(
+                    agent_name=self.agent_name,
+                    response_text=response_text,
+                    confidence=0.85,
+                    action_taken="general_loan_info",
+                    data={"available_loans": self.loan_types}
+                )
                 
                 return AgentResponse(
                     agent_name=self.agent_name,

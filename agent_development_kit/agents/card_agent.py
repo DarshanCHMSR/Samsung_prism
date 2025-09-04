@@ -106,47 +106,104 @@ class CardAgent(BaseAgent):
     async def _handle_card_limits(self, query: UserQuery, user_data: Dict[str, Any]) -> AgentResponse:
         """Handle card limit inquiries"""
         try:
-            # Get user cards from Firebase
-            cards_ref = self.db.collection('user_cards').where('user_id', '==', query.user_id)
-            cards = cards_ref.stream()
-            
-            card_list = []
-            for doc in cards:
-                card_data = doc.to_dict()
-                card_list.append(card_data)
-            
-            if not card_list:
+            if not user_data:
                 return AgentResponse(
                     agent_name=self.agent_name,
-                    response_text="I couldn't find any cards associated with your account. Please contact customer support if you believe this is an error.",
+                    response_text="Please ensure you're logged in to check your card limits.",
                     confidence=0.8
                 )
             
-            response_text = "Your Card Limits:\n\n"
+            # Get basic user info
+            full_name = user_data.get('fullName', 'User')
+            account_number = user_data.get('accountNumber', 'N/A')
             
-            for card in card_list:
-                card_type = card.get('card_type', 'Unknown')
-                card_number_masked = card.get('card_number_masked', 'XXXX-XXXX-XXXX-XXXX')
+            # Try to get user cards from Firebase (if collection exists)
+            try:
+                cards_ref = self.db.collection('user_cards').where('userId', '==', query.user_id)
+                cards = list(cards_ref.stream())
                 
-                if card_type.lower() == 'credit':
-                    total_limit = card.get('credit_limit', 0)
-                    used_limit = card.get('used_limit', 0)
-                    available_limit = total_limit - used_limit
+                if cards:
+                    # Process actual card data
+                    response_text = f"Hi {full_name}! Your Card Limits:\n\n"
                     
-                    response_text += f"💳 Credit Card ({card_number_masked}):\n"
-                    response_text += f"   Total Limit: ₹{total_limit:,.2f}\n"
-                    response_text += f"   Used: ₹{used_limit:,.2f}\n"
-                    response_text += f"   Available: ₹{available_limit:,.2f}\n\n"
+                    for doc in cards:
+                        card_data = doc.to_dict()
+                        card_type = card_data.get('card_type', 'Unknown')
+                        card_number_masked = card_data.get('card_number_masked', 'XXXX-XXXX-XXXX-XXXX')
+                        
+                        if card_type.lower() == 'credit':
+                            total_limit = card_data.get('credit_limit', 0)
+                            used_limit = card_data.get('used_limit', 0)
+                            available_limit = total_limit - used_limit
+                            
+                            response_text += f"💳 Credit Card ({card_number_masked}):\n"
+                            response_text += f"   Total Limit: ₹{total_limit:,.2f}\n"
+                            response_text += f"   Used: ₹{used_limit:,.2f}\n"
+                            response_text += f"   Available: ₹{available_limit:,.2f}\n\n"
+                            
+                        elif card_type.lower() == 'debit':
+                            daily_limit = card_data.get('daily_withdrawal_limit', 50000)
+                            daily_used = card_data.get('daily_used', 0)
+                            daily_available = daily_limit - daily_used
+                            
+                            response_text += f"💳 Debit Card ({card_number_masked}):\n"
+                            response_text += f"   Daily Withdrawal Limit: ₹{daily_limit:,.2f}\n"
+                            response_text += f"   Used Today: ₹{daily_used:,.2f}\n"
+                            response_text += f"   Available Today: ₹{daily_available:,.2f}\n\n"
                     
-                elif card_type.lower() == 'debit':
-                    daily_limit = card.get('daily_withdrawal_limit', 50000)
-                    daily_used = card.get('daily_used', 0)
-                    daily_available = daily_limit - daily_used
+                    return AgentResponse(
+                        agent_name=self.agent_name,
+                        response_text=response_text,
+                        confidence=0.95,
+                        action_taken="card_limits_retrieved",
+                        data={"cards_found": len(cards)}
+                    )
+                else:
+                    # No cards found, provide general information
+                    response_text = f"Hi {full_name}! I don't see any active cards linked to your account ({account_number}).\n\n"
+                    response_text += f"📋 **Standard Card Limits:**\n\n"
+                    response_text += f"💳 **Debit Card:**\n"
+                    response_text += f"   • Daily ATM withdrawal: ₹50,000\n"
+                    response_text += f"   • Daily POS transactions: ₹2,00,000\n"
+                    response_text += f"   • Online transactions: ₹1,00,000\n\n"
+                    response_text += f"💳 **Credit Card:**\n"
+                    response_text += f"   • Credit limit varies based on income\n"
+                    response_text += f"   • Typically 3-4 times monthly salary\n\n"
+                    response_text += f"💡 **To get/activate cards:**\n"
+                    response_text += f"Visit any Samsung Prism branch or apply online.\n"
+                    response_text += f"Need help with card application?"
                     
-                    response_text += f"💳 Debit Card ({card_number_masked}):\n"
-                    response_text += f"   Daily Withdrawal Limit: ₹{daily_limit:,.2f}\n"
-                    response_text += f"   Used Today: ₹{daily_used:,.2f}\n"
-                    response_text += f"   Available Today: ₹{daily_available:,.2f}\n\n"
+                    return AgentResponse(
+                        agent_name=self.agent_name,
+                        response_text=response_text,
+                        confidence=0.85,
+                        action_taken="general_card_info",
+                        data={"account_number": account_number}
+                    )
+                    
+            except Exception as e:
+                # If cards collection doesn't exist or query fails, provide general info
+                response_text = f"Hi {full_name}! Here's general information about card limits:\n\n"
+                response_text += f"📋 **Standard Samsung Prism Card Limits:**\n\n"
+                response_text += f"💳 **Debit Card Limits:**\n"
+                response_text += f"   • Daily ATM withdrawal: ₹50,000\n"
+                response_text += f"   • Daily POS transactions: ₹2,00,000\n"
+                response_text += f"   • Online transactions: ₹1,00,000\n\n"
+                response_text += f"💳 **Credit Card Limits:**\n"
+                response_text += f"   • Varies based on income and credit score\n"
+                response_text += f"   • Typically 3-4 times monthly salary\n"
+                response_text += f"   • Can be increased based on usage\n\n"
+                response_text += f"💡 **For specific limits:**\n"
+                response_text += f"Check the mobile app, visit branch, or call customer care.\n"
+                response_text += f"Account: {account_number}"
+                
+                return AgentResponse(
+                    agent_name=self.agent_name,
+                    response_text=response_text,
+                    confidence=0.8,
+                    action_taken="general_limit_info",
+                    data={"account_number": account_number}
+                )
             
             return AgentResponse(
                 agent_name=self.agent_name,
