@@ -12,6 +12,7 @@ import '../scan/scan_pay_screen.dart';
 import '../transactions/transaction_history_screen.dart';
 import '../location/location_screen.dart';
 import '../profile/profile_screen.dart';
+import '../agent_chat_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -308,22 +309,25 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: _buildActionCard(
-                  'Secure Transfer',
-                  FontAwesomeIcons.shield,
-                  Colors.green,
+                  'AI Assistant',
+                  FontAwesomeIcons.robot,
+                  const Color(0xFF1976D2),
                   () {
-                    Navigator.pushNamed(context, '/secure-transaction');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AgentChatScreen()),
+                    );
                   },
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildActionCard(
-                  'Security Alerts',
-                  FontAwesomeIcons.bell,
-                  Colors.red,
+                  'Secure Transfer',
+                  FontAwesomeIcons.shield,
+                  Colors.green,
                   () {
-                    Navigator.pushNamed(context, '/security-alerts');
+                    Navigator.pushNamed(context, '/secure-transaction');
                   },
                 ),
               ),

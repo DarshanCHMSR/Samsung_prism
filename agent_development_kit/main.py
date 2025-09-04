@@ -77,6 +77,36 @@ class HealthCheck(BaseModel):
     database_connection: bool
     timestamp: str
 
+# Authentication Models
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class AuthResponse(BaseModel):
+    success: bool
+    user_id: Optional[str] = None
+    access_token: Optional[str] = None
+    user_data: Optional[Dict[str, Any]] = None
+    message: str
+
+class UserRegistration(BaseModel):
+    email: str
+    password: str
+    full_name: str
+    phone: Optional[str] = None
+    date_of_birth: Optional[str] = None
+
+class UserProfile(BaseModel):
+    user_id: str
+    email: str
+    full_name: str
+    phone: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    account_balance: Optional[float] = None
+    account_number: Optional[str] = None
+    created_at: str
+    last_login: Optional[str] = None
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize the system on startup"""
@@ -270,6 +300,166 @@ async def get_agent_capabilities(
     except Exception as e:
         logger.error(f"Failed to get agent capabilities: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Agent capabilities retrieval failed: {str(e)}")
+
+# Authentication Endpoints
+@app.post("/auth/login", response_model=AuthResponse, summary="User login")
+async def login_user(request: LoginRequest) -> AuthResponse:
+    """
+    Authenticate user with email and password
+    
+    - **email**: User's email address
+    - **password**: User's password
+    """
+    try:
+        db = get_firestore_db()
+        
+        # Query users collection for matching email
+        users_ref = db.collection('users')
+        query = users_ref.where('email', '==', request.email).limit(1)
+        docs = query.get()
+        
+        if not docs:
+            return AuthResponse(
+                success=False,
+                message="Invalid email or password"
+            )
+        
+        user_doc = docs[0]
+        user_data = user_doc.to_dict()
+        
+        # In production, use proper password hashing (bcrypt, etc.)
+        # For demo purposes, we'll do simple comparison
+        if user_data.get('password') == request.password:
+            # Update last login
+            user_doc.reference.update({
+                'last_login': datetime.now().isoformat()
+            })
+            
+            return AuthResponse(
+                success=True,
+                user_id=user_doc.id,
+                access_token=f"token_{user_doc.id}_{datetime.now().timestamp()}",
+                user_data={
+                    'email': user_data.get('email'),
+                    'full_name': user_data.get('full_name'),
+                    'account_number': user_data.get('account_number'),
+                    'account_balance': user_data.get('account_balance', 0.0)
+                },
+                message="Login successful"
+            )
+        else:
+            return AuthResponse(
+                success=False,
+                message="Invalid email or password"
+            )
+            
+    except Exception as e:
+        logger.error(f"Login failed: {str(e)}")
+        return AuthResponse(
+            success=False,
+            message="Login failed due to server error"
+        )
+
+@app.post("/auth/register", response_model=AuthResponse, summary="User registration")
+async def register_user(request: UserRegistration) -> AuthResponse:
+    """
+    Register a new user
+    
+    - **email**: User's email address
+    - **password**: User's password
+    - **full_name**: User's full name
+    - **phone**: User's phone number (optional)
+    - **date_of_birth**: User's date of birth (optional)
+    """
+    try:
+        db = get_firestore_db()
+        
+        # Check if user already exists
+        users_ref = db.collection('users')
+        existing_query = users_ref.where('email', '==', request.email).limit(1)
+        existing_docs = existing_query.get()
+        
+        if existing_docs:
+            return AuthResponse(
+                success=False,
+                message="User with this email already exists"
+            )
+        
+        # Generate account number
+        import random
+        account_number = f"ACC{random.randint(100000000, 999999999)}"
+        
+        # Create new user
+        user_data = {
+            'email': request.email,
+            'password': request.password,  # In production, hash this!
+            'full_name': request.full_name,
+            'phone': request.phone,
+            'date_of_birth': request.date_of_birth,
+            'account_number': account_number,
+            'account_balance': 1000.0,  # Starting balance
+            'created_at': datetime.now().isoformat(),
+            'last_login': datetime.now().isoformat()
+        }
+        
+        # Add user to Firestore
+        doc_ref = users_ref.add(user_data)
+        user_id = doc_ref[1].id
+        
+        return AuthResponse(
+            success=True,
+            user_id=user_id,
+            access_token=f"token_{user_id}_{datetime.now().timestamp()}",
+            user_data={
+                'email': user_data.get('email'),
+                'full_name': user_data.get('full_name'),
+                'account_number': user_data.get('account_number'),
+                'account_balance': user_data.get('account_balance')
+            },
+            message="Registration successful"
+        )
+        
+    except Exception as e:
+        logger.error(f"Registration failed: {str(e)}")
+        return AuthResponse(
+            success=False,
+            message="Registration failed due to server error"
+        )
+
+@app.get("/auth/profile/{user_id}", response_model=UserProfile, summary="Get user profile")
+async def get_user_profile(user_id: str) -> UserProfile:
+    """
+    Get user profile information
+    
+    - **user_id**: User's unique ID
+    """
+    try:
+        db = get_firestore_db()
+        
+        user_doc = db.collection('users').document(user_id).get()
+        
+        if not user_doc.exists:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_data = user_doc.to_dict()
+        
+        return UserProfile(
+            user_id=user_id,
+            email=user_data.get('email'),
+            full_name=user_data.get('full_name'),
+            phone=user_data.get('phone'),
+            date_of_birth=user_data.get('date_of_birth'),
+            account_balance=user_data.get('account_balance', 0.0),
+            account_number=user_data.get('account_number'),
+            created_at=user_data.get('created_at'),
+            last_login=user_data.get('last_login')
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get user profile: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve user profile")
 
 # Test endpoints for development
 @app.post("/test/query", summary="Test query processing")

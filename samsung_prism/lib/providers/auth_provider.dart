@@ -13,7 +13,6 @@ class AuthProvider with ChangeNotifier {
   User? get user => _user;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get isAuthenticated => _user != null;
   
   AuthProvider() {
     _auth.authStateChanges().listen((User? user) {
@@ -101,6 +100,62 @@ class AuthProvider with ChangeNotifier {
   String _generateAccountNumber() {
     final now = DateTime.now();
     return '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}${now.millisecond.toString().padLeft(3, '0')}';
+  }
+
+  // Agent Authentication Method
+  Future<bool> signInWithAgent({
+    required String userId,
+    required String email,
+    required Map<String, dynamic> userData,
+  }) async {
+    try {
+      _setLoading(true);
+      _clearError();
+      
+      // For agent authentication, we'll create a custom User-like object
+      // In production, you might want to integrate this with Firebase Auth
+      
+      // Store agent user data locally or in a state management solution
+      // For now, we'll use the existing Firebase Auth structure
+      
+      // You could create a Firebase custom token here if needed
+      // For demo purposes, we'll simulate authentication
+      
+      _agentUserId = userId;
+      _agentUserData = userData;
+      _isAgentAuthenticated = true;
+      
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('Agent authentication failed');
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  // Agent authentication state
+  String? _agentUserId;
+  Map<String, dynamic>? _agentUserData;
+  bool _isAgentAuthenticated = false;
+  
+  String? get agentUserId => _agentUserId;
+  Map<String, dynamic>? get agentUserData => _agentUserData;
+  bool get isAgentAuthenticated => _isAgentAuthenticated;
+  
+  // Override the main authentication check to include agent auth
+  bool get isAuthenticated => _user != null || _isAgentAuthenticated;
+  
+  // Get current user (Firebase or Agent)
+  User? get currentUser => _user;
+  String? get currentUserId => _user?.uid ?? _agentUserId;
+  
+  Future<void> signOutAgent() async {
+    _agentUserId = null;
+    _agentUserData = null;
+    _isAgentAuthenticated = false;
+    notifyListeners();
   }
   
   void _setLoading(bool loading) {

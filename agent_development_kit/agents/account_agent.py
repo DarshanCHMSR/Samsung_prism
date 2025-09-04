@@ -90,30 +90,47 @@ class AccountAgent(BaseAgent):
     async def _handle_balance_inquiry(self, query: UserQuery, user_data: Dict[str, Any]) -> AgentResponse:
         """Handle balance inquiry requests"""
         try:
-            # Get balance from user data or balance collection
-            balance_ref = self.db.collection('user_balances').document(query.user_id)
-            balance_doc = balance_ref.get()
+            # Get balance from user data directly (Flutter app stores it in users collection)
+            current_balance = user_data.get('balance', 0.0)
+            account_number = user_data.get('accountNumber', 'N/A')
             
-            if balance_doc.exists:
-                balance_data = balance_doc.to_dict()
-                current_balance = balance_data.get('balance', 0.0)
-                last_updated = balance_data.get('last_updated', 'Unknown')
-                
-                response_text = f"Your current account balance is ₹{current_balance:,.2f}. Last updated: {last_updated}"
+            if current_balance is not None:
+                response_text = f"Your current account balance is ₹{current_balance:,.2f}."
+                if account_number != 'N/A':
+                    response_text += f" Account: {account_number}"
                 
                 return AgentResponse(
                     agent_name=self.agent_name,
                     response_text=response_text,
                     confidence=0.95,
                     action_taken="balance_inquiry",
-                    data={"balance": current_balance, "last_updated": last_updated}
+                    data={"balance": current_balance, "account_number": account_number}
                 )
             else:
-                return AgentResponse(
-                    agent_name=self.agent_name,
-                    response_text="I couldn't retrieve your balance information at the moment. Please try again later.",
-                    confidence=0.8
-                )
+                # Fallback: try to get from user_balances collection if exists
+                balance_ref = self.db.collection('user_balances').document(query.user_id)
+                balance_doc = balance_ref.get()
+                
+                if balance_doc.exists:
+                    balance_data = balance_doc.to_dict()
+                    current_balance = balance_data.get('balance', 0.0)
+                    last_updated = balance_data.get('last_updated', 'Unknown')
+                    
+                    response_text = f"Your current account balance is ₹{current_balance:,.2f}. Last updated: {last_updated}"
+                    
+                    return AgentResponse(
+                        agent_name=self.agent_name,
+                        response_text=response_text,
+                        confidence=0.95,
+                        action_taken="balance_inquiry",
+                        data={"balance": current_balance, "last_updated": last_updated}
+                    )
+                else:
+                    return AgentResponse(
+                        agent_name=self.agent_name,
+                        response_text="I couldn't retrieve your balance information at the moment. Please ensure your account is properly set up.",
+                        confidence=0.8
+                    )
                 
         except Exception as e:
             self.logger.error(f"Error handling balance inquiry: {str(e)}")
@@ -126,8 +143,8 @@ class AccountAgent(BaseAgent):
     async def _handle_transaction_history(self, query: UserQuery, user_data: Dict[str, Any]) -> AgentResponse:
         """Handle transaction history requests"""
         try:
-            # Get recent transactions
-            transactions_ref = self.db.collection('transactions').where('user_id', '==', query.user_id)
+            # Get recent transactions - Flutter app uses 'userId' field (not 'user_id')
+            transactions_ref = self.db.collection('transactions').where('userId', '==', query.user_id)
             transactions_query = transactions_ref.order_by('timestamp', direction='DESCENDING').limit(10)
             transactions = transactions_query.stream()
             
@@ -138,13 +155,15 @@ class AccountAgent(BaseAgent):
                     'amount': trans_data.get('amount', 0),
                     'type': trans_data.get('type', 'Unknown'),
                     'description': trans_data.get('description', 'No description'),
-                    'timestamp': trans_data.get('timestamp', 'Unknown')
+                    'timestamp': trans_data.get('timestamp', 'Unknown'),
+                    'recipientName': trans_data.get('recipientName', '')
                 })
             
             if transaction_list:
                 response_text = f"Here are your recent transactions:\n\n"
                 for i, trans in enumerate(transaction_list[:5], 1):
-                    response_text += f"{i}. {trans['type']}: ₹{trans['amount']:,.2f} - {trans['description']}\n"
+                    recipient_info = f" to {trans['recipientName']}" if trans['recipientName'] else ""
+                    response_text += f"{i}. {trans['type'].title()}: ₹{trans['amount']:,.2f}{recipient_info} - {trans['description']}\n"
                 
                 return AgentResponse(
                     agent_name=self.agent_name,
@@ -198,8 +217,8 @@ class AccountAgent(BaseAgent):
     async def _handle_recent_transactions(self, query: UserQuery, user_data: Dict[str, Any]) -> AgentResponse:
         """Handle recent transactions requests"""
         try:
-            # Get last 3 transactions
-            transactions_ref = self.db.collection('transactions').where('user_id', '==', query.user_id)
+            # Get last 3 transactions - Flutter app uses 'userId' field
+            transactions_ref = self.db.collection('transactions').where('userId', '==', query.user_id)
             recent_query = transactions_ref.order_by('timestamp', direction='DESCENDING').limit(3)
             transactions = recent_query.stream()
             
@@ -214,7 +233,9 @@ class AccountAgent(BaseAgent):
                     amount = trans.get('amount', 0)
                     trans_type = trans.get('type', 'Transaction')
                     description = trans.get('description', 'No description')
-                    response_text += f"{i}. {trans_type}: ₹{amount:,.2f} - {description}\n"
+                    recipient_name = trans.get('recipientName', '')
+                    recipient_info = f" to {recipient_name}" if recipient_name else ""
+                    response_text += f"{i}. {trans_type.title()}: ₹{amount:,.2f}{recipient_info} - {description}\n"
                 
                 return AgentResponse(
                     agent_name=self.agent_name,
