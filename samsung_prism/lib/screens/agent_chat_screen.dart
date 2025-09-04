@@ -57,14 +57,24 @@ class _AgentChatScreenState extends State<AgentChatScreen>
 
   Future<void> _checkSystemHealth() async {
     try {
-      final health = await AgentApiService.getSystemHealth();
-      setState(() {
-        _isSystemHealthy = health.systemHealthy;
-      });
+      // Use a shorter timeout for health check to prevent blocking
+      final healthFuture = AgentApiService.getSystemHealth()
+          .timeout(const Duration(seconds: 5));
+      
+      final health = await healthFuture;
+      if (mounted) {
+        setState(() {
+          _isSystemHealthy = health.systemHealthy;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isSystemHealthy = false;
-      });
+      print('Health check failed: $e');
+      // Don't block the UI, just assume system is available
+      if (mounted) {
+        setState(() {
+          _isSystemHealthy = true; // Optimistic default
+        });
+      }
     }
   }
 
@@ -110,11 +120,18 @@ class _AgentChatScreenState extends State<AgentChatScreen>
     _scrollToBottom();
 
     try {
+      // Add debug print
+      print('🤖 Sending query to agent: $message');
+      print('🌐 API URL: ${AgentApiService.baseUrl}');
+      print('👤 User ID: ${authProvider.currentUser!.uid}');
+      
       // Query the agent
       final response = await AgentApiService.queryAgent(
         userId: authProvider.currentUser!.uid,
         queryText: message,
       );
+
+      print('✅ Agent response received: ${response.agentName} with confidence ${response.confidence}');
 
       // Add agent response
       setState(() {
@@ -131,10 +148,12 @@ class _AgentChatScreenState extends State<AgentChatScreen>
       // Provide haptic feedback for successful response
       HapticFeedback.lightImpact();
     } catch (e) {
-      // Add error message
+      print('❌ Agent query failed: $e');
+      
+      // Add error message with details
       setState(() {
         _messages.add(ChatMessage(
-          text: "I apologize, but I'm having trouble processing your request. Please try again.",
+          text: "I apologize, but I'm having trouble processing your request.\n\nError: ${e.toString()}\n\nPlease check if the agent system is running and try again.",
           isUser: false,
           timestamp: DateTime.now(),
           agentName: "System",

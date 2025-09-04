@@ -26,9 +26,18 @@ class AuthProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
       
+      // Add timeout for Android emulator performance
       final UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
+      ).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          throw FirebaseAuthException(
+            code: 'timeout',
+            message: 'Authentication timeout. Please try again.',
+          );
+        },
       );
       
       _user = result.user;

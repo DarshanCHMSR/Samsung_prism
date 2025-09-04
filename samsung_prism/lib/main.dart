@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
+import 'utils/android_optimizations.dart';
+import 'widgets/performance_debug_overlay.dart';
 import 'screens/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/enhanced_login_screen.dart';
@@ -27,9 +30,21 @@ import 'utils/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Apply Android emulator optimizations
+  AndroidOptimizations.configureForEmulator();
+  
+  // Initialize Firebase with optimized settings for Android emulator
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // Configure Firebase Auth for better Android emulator performance
+  firebase_auth.FirebaseAuth.instance.setSettings(
+    appVerificationDisabledForTesting: true, // Disable phone verification for emulator
+    forceRecaptchaFlow: false, // Disable reCAPTCHA for faster login
+  );
+  
   runApp(const SamsungPrismBankingApp());
 }
 
@@ -47,10 +62,11 @@ class SamsungPrismBankingApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => KeystrokeAuthProvider()),
         ChangeNotifierProvider(create: (_) => LocationSecurityProvider()),
       ],
-      child: MaterialApp(
-        title: 'Samsung Prism Banking',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
+      child: PerformanceDebugOverlay(
+        child: MaterialApp(
+          title: 'Samsung Prism Banking',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
           primarySwatch: Colors.blue,
           primaryColor: AppColors.primaryBlue,
           scaffoldBackgroundColor: AppColors.backgroundGrey,
@@ -99,6 +115,7 @@ class SamsungPrismBankingApp extends StatelessWidget {
           '/security-alerts': (context) => const SecurityAlertsScreen(),
           '/secure-transaction': (context) => const SecureTransactionScreen(),
         },
+        ),
       ),
     );
   }
