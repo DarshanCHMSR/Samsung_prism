@@ -50,10 +50,29 @@ class _KeystrokeRecorderState extends State<KeystrokeRecorder> {
   }
 
   @override
+  void didUpdateWidget(KeystrokeRecorder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Clear the text field when the widget key changes (new recording session)
+    if (widget.key != oldWidget.key) {
+      _controller.clear();
+      _clearSession();
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _clearSession() {
+    setState(() {
+      _isRecording = false;
+      _sessionStartTime = null;
+      _events.clear();
+      _keyDownTimes.clear();
+    });
   }
 
   void _onFocusChanged() {
@@ -95,6 +114,10 @@ class _KeystrokeRecorderState extends State<KeystrokeRecorder> {
         startTime: _sessionStartTime!,
         endTime: DateTime.now(),
       );
+      
+      // Clear the text field after completing session
+      _controller.clear();
+      
       widget.onSessionComplete(session);
     }
   }

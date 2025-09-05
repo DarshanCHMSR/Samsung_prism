@@ -32,14 +32,34 @@ app.config.from_object(config)
 
 # Configure CORS if enabled
 if config.ENABLE_CORS:
-    CORS(app, resources={
-        r"/*": {
-            "origins": ["http://localhost:*", "http://127.0.0.1:*", "http://10.0.2.2:*"],
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "Accept"],
-            "supports_credentials": True
-        }
-    })
+    # Check if we're on PythonAnywhere
+    pythonanywhere_domain = os.environ.get('PYTHONANYWHERE_DOMAIN')
+    
+    if pythonanywhere_domain:
+        # PythonAnywhere production CORS
+        CORS(app, resources={
+            r"/*": {
+                "origins": [
+                    f"https://{pythonanywhere_domain}",
+                    "http://localhost:*",
+                    "http://127.0.0.1:*",
+                    "http://10.0.2.2:*"
+                ],
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization", "Accept"],
+                "supports_credentials": False
+            }
+        })
+    else:
+        # Development CORS
+        CORS(app, resources={
+            r"/*": {
+                "origins": ["http://localhost:*", "http://127.0.0.1:*", "http://10.0.2.2:*"],
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization", "Accept"],
+                "supports_credentials": True
+            }
+        })
 
 # Configure logging
 logging.basicConfig(

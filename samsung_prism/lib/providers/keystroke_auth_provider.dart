@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/keystroke_models.dart';
 import '../services/keystroke_auth_service.dart';
+import '../services/keystroke_auto_config_service.dart';
+import '../config/keystroke_config.dart';
 
 /// Provider class for managing keystroke dynamics authentication state
 /// 
@@ -21,7 +23,36 @@ class KeystrokeAuthProvider extends ChangeNotifier {
   bool _isConfigured = false;
 
   KeystrokeAuthProvider({KeystrokeAuthService? service})
-      : _service = service ?? KeystrokeAuthService();
+      : _service = service ?? KeystrokeAuthService() {
+    // Auto-configure with default settings using the auto-config service
+    _initializeWithAutoConfig();
+  }
+  
+  /// Initialize with automatic configuration
+  Future<void> _initializeWithAutoConfig() async {
+    try {
+      _isConfigured = await KeystrokeAutoConfigService.initialize();
+      if (_isConfigured) {
+        final config = KeystrokeAutoConfigService.getCurrentConfiguration();
+        if (config != null) {
+          // Extract server IP from the server URL
+          final serverUrl = config['serverUrl'] as String;
+          final uri = Uri.parse(serverUrl);
+          _serverIp = uri.host;
+          
+          if (kDebugMode) {
+            print('✅ Keystroke auth auto-configured: $_serverIp');
+          }
+        }
+      }
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Keystroke auth auto-config failed: $e');
+      }
+      _isConfigured = false;
+    }
+  }
 
   KeystrokeAuthState get state => _state;
   bool get isConfigured => _isConfigured;

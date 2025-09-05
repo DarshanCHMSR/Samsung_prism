@@ -15,40 +15,36 @@ class KeystrokeSetupScreen extends StatefulWidget {
 }
 
 class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _serverUrlController = TextEditingController();
   final _trainingPasswordController = TextEditingController();
   
-  int _currentStep = 0;
+  int _currentStep = 0; // Start at 0 (skip URL configuration)
   int _trainingSamplesCollected = 0;
   final int _requiredSamples = 5;
   List<KeystrokeSession> _trainingSessions = [];
   bool _isTraining = false;
+  
+  // Key for keystroke recorder to force rebuild and clear input
+  Key _keystrokeRecorderKey = UniqueKey();
 
   @override
   void initState() {
     super.initState();
-    _loadConfiguration();
+    _initializeKeystrokeAuth();
   }
 
-  void _loadConfiguration() async {
-    final keystrokeProvider = Provider.of<KeystrokeAuthProvider>(context, listen: false);
-    await keystrokeProvider.loadConfiguration();
-    
-    if (keystrokeProvider.isConfigured && keystrokeProvider.serverIp != null) {
-      _serverUrlController.text = 'http://${keystrokeProvider.serverIp}:5000';
-    }
+  void _initializeKeystrokeAuth() async {
+    // Provider will auto-configure with default settings
+    await Future.delayed(Duration.zero); // Ensure provider is initialized
   }
 
   @override
   void dispose() {
-    _serverUrlController.dispose();
     _trainingPasswordController.dispose();
     super.dispose();
   }
 
   void _nextStep() {
-    if (_currentStep < 2) {
+    if (_currentStep < 1) { // Only one step now: training
       setState(() {
         _currentStep++;
       });
@@ -59,44 +55,6 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
     if (_currentStep > 0) {
       setState(() {
         _currentStep--;
-      });
-    }
-  }
-
-  void _testConnection() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final keystrokeProvider = Provider.of<KeystrokeAuthProvider>(context, listen: false);
-    
-    setState(() {
-      _isTraining = true;
-    });
-
-    try {
-      // Parse URL to extract server IP
-      final uri = Uri.parse(_serverUrlController.text.trim());
-      final serverIp = uri.host;
-      final port = uri.port != 0 ? uri.port : 5000;
-      final useHttps = uri.scheme == 'https';
-      
-      // Test server connection
-      await keystrokeProvider.configure(
-        serverIp: serverIp,
-        port: port,
-        useHttps: useHttps,
-      );
-      
-      if (keystrokeProvider.isConfigured) {
-        _showMessage('Server connection successful!', isError: false);
-        _nextStep();
-      } else {
-        _showMessage('Failed to connect to server. Please check the URL.', isError: true);
-      }
-    } catch (e) {
-      _showMessage('Connection error: ${e.toString()}', isError: true);
-    } finally {
-      setState(() {
-        _isTraining = false;
       });
     }
   }
@@ -118,9 +76,13 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
       }
       
       if (keystrokeProvider.state.status != KeystrokeAuthStatus.error) {
-        _showMessage('Model training completed successfully!', isError: false);
+        _showMessage('Model training completed successfully! Your keystroke pattern has been saved.', isError: false);
         
-        // Navigate back to login
+        // Keep the trained data available - don't clear it
+        // Just show success and allow user to continue
+        
+        // Navigate back to login after a delay to show the success message
+        await Future.delayed(const Duration(seconds: 2));
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/enhanced-login');
         }
@@ -145,14 +107,18 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
     
     setState(() {
       _trainingSamplesCollected = _trainingSessions.length;
+      // Clear the input and regenerate the recorder widget
+      _keystrokeRecorderKey = UniqueKey();
     });
 
+    // Clear the text field after recording
+    _trainingPasswordController.clear();
+
     if (_trainingSamplesCollected >= _requiredSamples) {
-      _showMessage('All training samples collected!', isError: false);
+      _showMessage('All training samples collected! Ready to train your model.', isError: false);
       _nextStep();
     } else {
       _showMessage('Sample ${_trainingSamplesCollected}/$_requiredSamples collected. Please type the password again.', isError: false);
-      _trainingPasswordController.clear();
     }
   }
 
@@ -169,7 +135,7 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
   Widget _buildStepIndicator() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(3, (index) {
+      children: List.generate(2, (index) { // Only 2 steps now: training and completion
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 4),
           width: 12,
@@ -180,91 +146,6 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
           ),
         );
       }),
-    );
-  }
-
-  Widget _buildServerConfigurationStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Server Configuration',
-          style: GoogleFonts.poppins(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textDark,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Configure the keystroke authentication server URL',
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            color: AppColors.textGrey,
-          ),
-        ),
-        const SizedBox(height: 24),
-        Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _serverUrlController,
-                decoration: InputDecoration(
-                  labelText: 'Server URL',
-                  hintText: 'http://localhost:5000',
-                  prefixIcon: const Icon(Icons.link),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter server URL';
-                  }
-                  try {
-                    Uri.parse(value.trim());
-                    return null;
-                  } catch (e) {
-                    return 'Please enter a valid URL';
-                  }
-                },
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isTraining ? null : _testConnection,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isTraining
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : Text(
-                          'Test Connection',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -337,6 +218,7 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
         
         if (_trainingSamplesCollected < _requiredSamples) ...[
           KeystrokeRecorder(
+            key: _keystrokeRecorderKey,
             onSessionComplete: _onKeystrokeSessionComplete,
             hintText: 'Type your password to record timing pattern',
             obscureText: true,
@@ -564,13 +446,11 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
                       builder: (context, keystrokeProvider, child) {
                         switch (_currentStep) {
                           case 0:
-                            return _buildServerConfigurationStep();
-                          case 1:
                             return _buildTrainingDataStep();
-                          case 2:
+                          case 1:
                             return _buildModelTrainingStep();
                           default:
-                            return _buildServerConfigurationStep();
+                            return _buildTrainingDataStep();
                         }
                       },
                     ),
@@ -596,7 +476,7 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
                       const SizedBox.shrink(),
                     
                     Text(
-                      'Step ${_currentStep + 1} of 3',
+                      'Step ${_currentStep + 1} of 2',
                       style: GoogleFonts.poppins(
                         color: AppColors.textGrey,
                         fontWeight: FontWeight.w500,
