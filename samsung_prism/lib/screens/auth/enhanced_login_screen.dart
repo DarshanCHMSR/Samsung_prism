@@ -85,7 +85,11 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
           print('DEBUG: Auto-configuration failed: $e');
           if (mounted) {
             _showError('Unable to connect to keystroke server. Redirecting to setup...');
-            Navigator.pushReplacementNamed(context, '/keystroke-setup');
+            Navigator.pushReplacementNamed(
+              context, 
+              '/keystroke-setup',
+              arguments: {'userId': userId}, // Pass the userId
+            );
           }
           return;
         }
@@ -109,10 +113,14 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
       
       // Check if user needs training first
       if (needsTraining) {
-        print('DEBUG: User needs training, redirecting to setup');
+        print('DEBUG: User needs training, redirecting to setup with userId: $userId');
         if (mounted) {
           _showError('User needs keystroke training. Redirecting to setup...');
-          Navigator.pushReplacementNamed(context, '/keystroke-setup');
+          Navigator.pushReplacementNamed(
+            context, 
+            '/keystroke-setup',
+            arguments: {'userId': userId}, // Pass the userId
+          );
         }
         return;
       }
@@ -508,7 +516,11 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                                       ),
                                       TextButton(
                                         onPressed: () {
-                                          Navigator.pushNamed(context, '/keystroke-setup');
+                                          Navigator.pushNamed(
+                                            context, 
+                                            '/keystroke-setup',
+                                            arguments: {'userId': _emailController.text.trim()}, // Pass the current email
+                                          );
                                         },
                                         child: const Text('Setup', style: TextStyle(fontSize: 12)),
                                       ),

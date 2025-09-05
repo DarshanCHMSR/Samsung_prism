@@ -22,6 +22,7 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
   final int _requiredSamples = 5;
   List<KeystrokeSession> _trainingSessions = [];
   bool _isTraining = false;
+  String? _passedUserId; // Store the passed userId
   
   // Key for keystroke recorder to force rebuild and clear input
   Key _keystrokeRecorderKey = UniqueKey();
@@ -33,6 +34,16 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
   }
 
   void _initializeKeystrokeAuth() async {
+    // Get the passed userId from route arguments
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (arguments != null && arguments['userId'] != null) {
+        _passedUserId = arguments['userId'] as String;
+        print('DEBUG: Received userId from navigation: $_passedUserId');
+        setState(() {}); // Trigger rebuild with the userId
+      }
+    });
+    
     // Provider will auto-configure with default settings
     await Future.delayed(Duration.zero); // Ensure provider is initialized
   }
@@ -41,6 +52,16 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
   void dispose() {
     _trainingPasswordController.dispose();
     super.dispose();
+  }
+
+  // Get the correct userId - prioritize passed userId, then Firebase email, then Firebase UID, then demo_user
+  String _getUserId() {
+    if (_passedUserId != null && _passedUserId!.isNotEmpty) {
+      return _passedUserId!;
+    }
+    
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    return authProvider.user?.email ?? authProvider.user?.uid ?? 'demo_user';
   }
 
   void _nextStep() {
@@ -61,9 +82,14 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
 
   void _trainModel() async {
     final keystrokeProvider = Provider.of<KeystrokeAuthProvider>(context, listen: false);
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
-    final userId = authProvider.user?.uid ?? 'demo_user';
+    // Use the consistent userId
+    final userId = _getUserId();
+    
+    print('DEBUG: Training model with user ID: $userId');
+    print('DEBUG: Passed userId: $_passedUserId');
+    print('DEBUG: Firebase UID: ${Provider.of<AuthProvider>(context, listen: false).user?.uid}');
+    print('DEBUG: User email: ${Provider.of<AuthProvider>(context, listen: false).user?.email}');
     
     setState(() {
       _isTraining = true;
@@ -99,8 +125,8 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
   }
 
   void _onKeystrokeSessionComplete(KeystrokeSession session) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final userId = authProvider.user?.uid ?? 'demo_user';
+    // Use the consistent userId
+    final userId = _getUserId();
     
     final sessionWithUser = session.copyWith(userId: userId);
     _trainingSessions.add(sessionWithUser);
@@ -169,7 +195,27 @@ class _KeystrokeSetupScreenState extends State<KeystrokeSetupScreen> {
             color: AppColors.textGrey,
           ),
         ),
-        const SizedBox(height: 24),
+        
+        // Debug info
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: Text(
+            'Training for user: ${_getUserId()}',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: AppColors.textGrey,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 16),
         
         // Progress indicator
         Container(
