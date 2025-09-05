@@ -78,9 +78,14 @@ class FirebaseConfig:
     def test_connection(self) -> bool:
         """Test Firebase connection"""
         try:
-            # Try to read a collection
-            collections = list(self.db.collections())
-            print(f"✅ Firebase connection test passed. Found {len(collections)} collections.")
+            # Try a less privileged operation - just test if we can create a document reference
+            # This doesn't require listing all collections
+            test_doc_ref = self.db.collection('system_health').document('connection_test')
+            
+            # Try to get the document (this will work even if the document doesn't exist)
+            test_doc = test_doc_ref.get()
+            
+            print(f"✅ Firebase connection test passed. Connection is working.")
             return True
         except Exception as e:
             print(f"❌ Firebase connection test failed: {str(e)}")

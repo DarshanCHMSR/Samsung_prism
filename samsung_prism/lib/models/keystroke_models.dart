@@ -157,9 +157,9 @@ class UserTrainingInfo {
     );
   }
 
-  bool get needsMoreTraining => trainingSamples < minSamplesRequired;
+  bool get needsMoreTraining => !hasTrainedModel;
   int get remainingSamples => 
-      needsMoreTraining ? minSamplesRequired - trainingSamples : 0;
+      !hasTrainedModel ? (minSamplesRequired - trainingSamples).clamp(0, minSamplesRequired) : 0;
   
   double get trainingProgress => 
       (trainingSamples / minSamplesRequired).clamp(0.0, 1.0);

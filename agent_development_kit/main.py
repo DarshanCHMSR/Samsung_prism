@@ -120,9 +120,15 @@ async def startup_event():
         if not firebase_config.initialize_firebase(service_account_path):
             raise Exception("Failed to initialize Firebase")
         
-        # Test Firebase connection
-        if not firebase_config.test_connection():
-            raise Exception("Firebase connection test failed")
+        # Test Firebase connection (skip if SKIP_CONNECTION_TEST is set)
+        skip_test = os.getenv('SKIP_CONNECTION_TEST', 'false').lower() == 'true'
+        if not skip_test:
+            if not firebase_config.test_connection():
+                logger.warning("⚠️ Firebase connection test failed - this may indicate permission issues")
+                logger.warning("⚠️ To skip this test temporarily, set SKIP_CONNECTION_TEST=true in .env")
+                raise Exception("Firebase connection test failed")
+        else:
+            logger.info("⚠️ Skipping Firebase connection test (SKIP_CONNECTION_TEST=true)")
         
         # Initialize multi-agent system
         db = get_firestore_db()
