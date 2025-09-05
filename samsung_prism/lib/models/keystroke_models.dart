@@ -41,12 +41,14 @@ class KeystrokeSession {
   final List<KeystrokeEvent> events;
   final DateTime startTime;
   final DateTime? endTime;
+  final String? capturedText; // Store the text that was typed
 
   KeystrokeSession({
     required this.userId,
     required this.events,
     required this.startTime,
     this.endTime,
+    this.capturedText,
   });
 
   Map<String, dynamic> toJson() {
@@ -68,12 +70,14 @@ class KeystrokeSession {
     List<KeystrokeEvent>? events,
     DateTime? startTime,
     DateTime? endTime,
+    String? capturedText,
   }) {
     return KeystrokeSession(
       userId: userId ?? this.userId,
       events: events ?? this.events,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
+      capturedText: capturedText ?? this.capturedText,
     );
   }
 }

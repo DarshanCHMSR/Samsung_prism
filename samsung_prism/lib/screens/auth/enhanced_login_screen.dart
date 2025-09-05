@@ -23,6 +23,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
   bool _obscurePassword = true;
   bool _useKeystrokeDynamics = false;
   KeystrokeSession? _passwordKeystrokeSession;
+  String? _capturedPassword; // Store the password from keystroke session
 
   @override
   void initState() {
@@ -132,6 +133,20 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
         return;
       }
       
+      // Check if we have the captured password
+      if (_capturedPassword == null || _capturedPassword!.isEmpty) {
+        print('DEBUG: No password captured from keystroke session');
+        _showError('Please enter your password.');
+        return;
+      }
+      
+      // Validate password length
+      if (_capturedPassword!.length < 6) {
+        print('DEBUG: Password too short');
+        _showError('Password must be at least 6 characters.');
+        return;
+      }
+      
       print('DEBUG: Proceeding with keystroke authentication');
       try {
         // Authenticate with keystroke dynamics FIRST
@@ -179,9 +194,17 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
     final locationProvider = Provider.of<LocationSecurityProvider>(context, listen: false);
     final email = _emailController.text.trim();
     
+    // Use captured password from keystroke session if available, otherwise use password controller
+    final password = _useKeystrokeDynamics && _capturedPassword != null 
+        ? _capturedPassword! 
+        : _passwordController.text;
+    
+    print('DEBUG: Using ${_useKeystrokeDynamics ? "captured" : "controller"} password for Firebase auth');
+    print('DEBUG: Password length: ${password.length}');
+    
     final traditionalAuthSuccess = await authProvider.signInWithEmailAndPassword(
       email,
-      _passwordController.text,
+      password,
     );
 
     // Record login attempt regardless of success/failure
@@ -231,6 +254,9 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
       _passwordKeystrokeSession = session.copyWith(
         userId: _emailController.text.trim(),
       );
+      // Store the captured password for Firebase authentication
+      _capturedPassword = session.capturedText;
+      print('DEBUG: Password captured from keystroke session: ${_capturedPassword?.isNotEmpty == true ? "[REDACTED]" : "EMPTY"}');
     });
   }
 
@@ -467,6 +493,11 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                                   onChanged: (value) {
                                     setState(() {
                                       _useKeystrokeDynamics = value ?? false;
+                                      // Clear captured data when toggling
+                                      if (!_useKeystrokeDynamics) {
+                                        _passwordKeystrokeSession = null;
+                                        _capturedPassword = null;
+                                      }
                                     });
                                   },
                                   title: const Text(

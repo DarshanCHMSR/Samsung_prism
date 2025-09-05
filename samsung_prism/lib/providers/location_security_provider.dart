@@ -154,6 +154,10 @@ class LocationSecurityProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print('Failed to load login attempts: $e');
+      // Don't fail the entire login process if we can't load recent attempts
+      // Just set to empty list and continue
+      _recentLoginAttempts = [];
+      notifyListeners();
     }
   }
 

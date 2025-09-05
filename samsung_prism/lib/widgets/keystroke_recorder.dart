@@ -108,11 +108,15 @@ class _KeystrokeRecorderState extends State<KeystrokeRecorder> {
     widget.onStopRecording?.call();
 
     if (_events.isNotEmpty && _sessionStartTime != null) {
+      // Capture the text before clearing
+      final capturedText = _controller.text;
+      
       final session = KeystrokeSession(
         userId: '', // Will be set by the caller
         events: List.from(_events),
         startTime: _sessionStartTime!,
         endTime: DateTime.now(),
+        capturedText: capturedText, // Store the captured text
       );
       
       // Clear the text field after completing session

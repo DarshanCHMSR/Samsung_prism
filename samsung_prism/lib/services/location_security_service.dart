@@ -221,6 +221,32 @@ class LocationSecurityService {
           .map((doc) => LoginAttempt.fromJson({...doc.data(), 'id': doc.id}))
           .toList();
     } catch (e) {
+      // Handle the case where the Firestore index is still building
+      if (e.toString().contains('failed-precondition') || 
+          e.toString().contains('index') || 
+          e.toString().contains('building')) {
+        print('Firestore index is still building, using fallback query without orderBy');
+        try {
+          // Fallback: Query without orderBy (works without index)
+          final snapshot = await _firestore
+              .collection('login_attempts')
+              .where('userId', isEqualTo: userId)
+              .limit(limit)
+              .get();
+
+          var attempts = snapshot.docs
+              .map((doc) => LoginAttempt.fromJson({...doc.data(), 'id': doc.id}))
+              .toList();
+          
+          // Sort in memory since we can't use orderBy
+          attempts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return attempts;
+        } catch (fallbackError) {
+          print('Fallback query also failed: $fallbackError');
+          return [];
+        }
+      }
+      
       print('Failed to get login attempts: $e');
       return [];
     }
