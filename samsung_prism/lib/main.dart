@@ -10,6 +10,7 @@ import 'screens/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/enhanced_login_screen.dart';
 import 'screens/auth/signup_screen.dart';
+import 'screens/auth/enhanced_signup_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/transfer/transfer_screen.dart';
 import 'screens/scan/scan_pay_screen.dart';
@@ -104,6 +105,7 @@ class SamsungPrismBankingApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/enhanced-login': (context) => const EnhancedLoginScreen(),
           '/signup': (context) => const SignUpScreen(),
+          '/enhanced-signup': (context) => const EnhancedSignUpScreen(),
           '/home': (context) => const HomeScreen(),
           '/transfer': (context) => const TransferScreen(),
           '/scan-pay': (context) => const ScanPayScreen(),

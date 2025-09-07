@@ -7,7 +7,7 @@ import '../../providers/location_security_provider.dart';
 import '../../utils/app_colors.dart';
 import '../../widgets/keystroke_recorder.dart';
 import '../../models/keystroke_models.dart';
-import 'signup_screen.dart';
+import 'enhanced_signup_screen.dart';
 
 class EnhancedLoginScreen extends StatefulWidget {
   const EnhancedLoginScreen({super.key});
@@ -670,7 +670,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => const SignUpScreen(),
+                                      builder: (context) => const EnhancedSignUpScreen(),
                                     ),
                                   );
                                 },
