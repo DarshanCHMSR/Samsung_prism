@@ -45,5 +45,12 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Location permissions for iOS -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Samsung Prism Banking needs location access to provide location-based security features, find nearby ATMs and branches, and verify your transactions for enhanced security.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Samsung Prism Banking needs location access to provide location-based security features, find nearby ATMs and branches, and verify your transactions for enhanced security.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Samsung Prism Banking needs location access to provide location-based security features and transaction verification.</string>
 </dict>
 </plist>

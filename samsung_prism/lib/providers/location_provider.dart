@@ -44,27 +44,48 @@ class LocationProvider with ChangeNotifier {
   
   Future<bool> requestLocationPermission() async {
     try {
+      // First check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        // On mobile, prompt user to enable location services
+        bool serviceEnabledAfterPrompt = await Geolocator.openLocationSettings();
+        if (!serviceEnabledAfterPrompt) {
+          _setError('Please enable location services in your device settings');
+          return false;
+        }
+      }
+      
       LocationPermission permission = await Geolocator.checkPermission();
+      print('DEBUG: Current permission status: $permission');
       
       if (permission == LocationPermission.denied) {
+        print('DEBUG: Requesting location permission...');
         permission = await Geolocator.requestPermission();
+        print('DEBUG: Permission after request: $permission');
       }
       
       if (permission == LocationPermission.deniedForever) {
-        _setError('Location permissions are permanently denied');
+        print('DEBUG: Location permissions permanently denied');
+        _setError('Location permissions are permanently denied. Please enable them in app settings.');
+        // On mobile, open app settings
+        await Geolocator.openAppSettings();
         return false;
       }
       
       if (permission == LocationPermission.denied) {
-        _setError('Location permissions are denied');
+        print('DEBUG: Location permissions denied');
+        _setError('Location permissions are required for banking security features');
         return false;
       }
       
+      print('DEBUG: Location permission granted: $permission');
       _locationPermissionGranted = true;
+      clearError(); // Use existing clearError method
       notifyListeners();
       return true;
     } catch (e) {
-      _setError('Failed to request location permission');
+      print('DEBUG: Error requesting location permission: $e');
+      _setError('Failed to request location permission: ${e.toString()}');
       return false;
     }
   }
