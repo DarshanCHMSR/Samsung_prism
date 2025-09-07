@@ -562,46 +562,6 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                             },
                           ),
                           
-                          // Debug button for testing (remove in production)
-                          if (_useKeystrokeDynamics) ...[
-                            const SizedBox(height: 8),
-                            Consumer<KeystrokeAuthProvider>(
-                              builder: (context, keystrokeProvider, child) {
-                                return Container(
-                                  width: double.infinity,
-                                  child: OutlinedButton(
-                                    onPressed: () async {
-                                      final userId = _emailController.text.trim();
-                                      if (userId.isEmpty) {
-                                        _showError('Please enter an email address first');
-                                        return;
-                                      }
-                                      await keystrokeProvider.forceMarkUserAsTrained(userId);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('DEBUG: Marked $userId as trained locally'),
-                                          backgroundColor: Colors.green,
-                                          duration: Duration(seconds: 3),
-                                        ),
-                                      );
-                                    },
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: Colors.orange,
-                                      side: BorderSide(color: Colors.orange),
-                                      padding: EdgeInsets.symmetric(vertical: 12),
-                                    ),
-                                    child: Text(
-                                      '🔧 DEBUG: Mark User as Trained',
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
                           const SizedBox(height: 24),
 
                           // Login Button

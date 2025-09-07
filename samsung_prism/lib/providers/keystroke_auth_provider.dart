@@ -432,13 +432,6 @@ class KeystrokeAuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Force mark user as trained (for testing/debugging)
-  Future<void> forceMarkUserAsTrained(String userId) async {
-    print('DEBUG: Force marking user $userId as trained');
-    await markUserAsTrained(userId);
-    notifyListeners();
-  }
-
   /// Get training progress (0.0 to 1.0)
   double getTrainingProgress() {
     return _state.userInfo?.trainingProgress ?? 0.0;
