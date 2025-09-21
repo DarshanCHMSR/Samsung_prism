@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/keystroke_auth_provider.dart';
 import '../../providers/location_security_provider.dart';
-import '../../providers/locale_provider.dart';
 import '../../utils/app_colors.dart';
 import '../../widgets/keystroke_recorder.dart';
 import '../../widgets/language_selector.dart';
@@ -690,6 +689,8 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 }

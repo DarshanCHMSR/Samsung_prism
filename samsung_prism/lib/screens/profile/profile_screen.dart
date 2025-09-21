@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:country_flags/country_flags.dart';
 import '../../l10n/app_localizations.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/balance_provider.dart';
-import '../../providers/locale_provider.dart';
 import '../../utils/app_colors.dart';
-import '../../widgets/language_selector.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
