@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:country_flags/country_flags.dart';
+import '../../l10n/app_localizations.dart';
+
 import '../../providers/auth_provider.dart';
 import '../../providers/balance_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../utils/app_colors.dart';
+import '../../widgets/language_selector.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -459,26 +464,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildLogoutButton() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: _logout,
-        icon: const Icon(Icons.logout, color: Colors.white),
-        label: Text(
-          'Logout',
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _logout,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red[50],
+            foregroundColor: Colors.red,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.red.shade200, width: 1),
+            ),
           ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.error,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          child: Text(AppLocalizations.of(context)!.logout),
         ),
       ),
     );

@@ -4,9 +4,12 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/keystroke_auth_provider.dart';
 import '../../providers/location_security_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../utils/app_colors.dart';
 import '../../widgets/keystroke_recorder.dart';
+import '../../widgets/language_selector.dart';
 import '../../models/keystroke_models.dart';
+import '../../l10n/app_localizations.dart';
 import 'enhanced_signup_screen.dart';
 
 class EnhancedLoginScreen extends StatefulWidget {
@@ -341,63 +344,65 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo and Title
-                  Icon(
-                    Icons.account_balance_wallet,
-                    size: 80,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Samsung Prism',
-                    style: GoogleFonts.poppins(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Secure Financial Management',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-
-                  // Login Form
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+          child: Stack(
+            children: [
+              Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Logo and Title
+                      Icon(
+                        Icons.account_balance_wallet,
+                        size: 80,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        AppLocalizations.of(context)!.appTitle,
+                        style: GoogleFonts.poppins(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
-                      ],
-                    ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            'Welcome Back',
-                            style: GoogleFonts.poppins(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textDark,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Secure Financial Management',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+
+                      // Login Form
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
                             ),
+                          ],
+                        ),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                AppLocalizations.of(context)!.welcomeBack,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textDark,
+                                ),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 32),
@@ -407,7 +412,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             decoration: InputDecoration(
-                              labelText: 'Email',
+                              labelText: AppLocalizations.of(context)!.email,
                               prefixIcon: const Icon(Icons.email_outlined),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -443,7 +448,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                                     const SizedBox(height: 4),
                                     PasswordKeystrokeRecorder(
                                       onSessionComplete: _onKeystrokeSessionComplete,
-                                      hintText: 'Enter your password',
+                                      hintText: AppLocalizations.of(context)!.password,
                                       enabled: !keystrokeProvider.state.isProcessing,
                                     ),
                                     const SizedBox(height: 8),
@@ -455,7 +460,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                                   controller: _passwordController,
                                   obscureText: _obscurePassword,
                                   decoration: InputDecoration(
-                                    labelText: 'Password',
+                                    labelText: AppLocalizations.of(context)!.password,
                                     prefixIcon: const Icon(Icons.lock_outlined),
                                     suffixIcon: IconButton(
                                       icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
@@ -589,7 +594,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                                         ),
                                       )
                                     : Text(
-                                        'Sign In',
+                                        AppLocalizations.of(context)!.login,
                                         style: GoogleFonts.poppins(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
@@ -606,7 +611,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                               // TODO: Implement forgot password
                             },
                             child: Text(
-                              'Forgot Password?',
+                              AppLocalizations.of(context)!.forgotPassword,
                               style: GoogleFonts.poppins(
                                 color: AppColors.primaryBlue,
                                 fontWeight: FontWeight.w500,
@@ -620,7 +625,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                "Don't have an account? ",
+                                AppLocalizations.of(context)!.dontHaveAccount,
                                 style: GoogleFonts.poppins(
                                   color: AppColors.textGrey,
                                 ),
@@ -635,7 +640,7 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
                                   );
                                 },
                                 child: Text(
-                                  'Sign Up',
+                                  AppLocalizations.of(context)!.signup,
                                   style: GoogleFonts.poppins(
                                     color: AppColors.primaryBlue,
                                     fontWeight: FontWeight.w600,
@@ -652,7 +657,38 @@ class _EnhancedLoginScreenState extends State<EnhancedLoginScreen> {
               ),
             ),
           ),
-        ),
+          // Language Selector
+          Positioned(
+            top: 16,
+            right: 16,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => const LanguageSelector(),
+                  );
+                },
+                icon: const Icon(
+                  Icons.language,
+                  color: Colors.black87,
+                ),
+                tooltip: AppLocalizations.of(context)!.selectLanguage,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
