@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../services/agent_api_service.dart';
 import '../providers/auth_provider.dart';
-import 'package:provider/provider.dart';
+import '../providers/voice_assistant_provider.dart';
+import '../providers/locale_provider.dart';
+import '../widgets/voice_ui_widgets.dart';
+import '../widgets/voice_settings_widgets.dart';
 
 class ChatMessage {
   final String text;
@@ -95,78 +100,7 @@ class _AgentChatScreenState extends State<AgentChatScreen>
     });
   }
 
-  Future<void> _sendMessage() async {
-    final message = _messageController.text.trim();
-    if (message.isEmpty) return;
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
-    if (!authProvider.isAuthenticated) {
-      _showSnackBar('Please login to use the AI assistant', isError: true);
-      return;
-    }
-
-    // Add user message
-    setState(() {
-      _messages.add(ChatMessage(
-        text: message,
-        isUser: true,
-        timestamp: DateTime.now(),
-      ));
-      _isLoading = true;
-    });
-
-    _messageController.clear();
-    _scrollToBottom();
-
-    try {
-      // Add debug print
-      print('🤖 Sending query to agent: $message');
-      print('🌐 API URL: ${AgentApiService.baseUrl}');
-      print('👤 User ID: ${authProvider.currentUser!.uid}');
-      
-      // Query the agent
-      final response = await AgentApiService.queryAgent(
-        userId: authProvider.currentUser!.uid,
-        queryText: message,
-      );
-
-      print('✅ Agent response received: ${response.agentName} with confidence ${response.confidence}');
-
-      // Add agent response
-      setState(() {
-        _messages.add(ChatMessage(
-          text: response.responseText,
-          isUser: false,
-          timestamp: DateTime.now(),
-          agentName: response.agentName,
-          confidence: response.confidence,
-        ));
-        _isLoading = false;
-      });
-
-      // Provide haptic feedback for successful response
-      HapticFeedback.lightImpact();
-    } catch (e) {
-      print('❌ Agent query failed: $e');
-      
-      // Add error message with details
-      setState(() {
-        _messages.add(ChatMessage(
-          text: "I apologize, but I'm having trouble processing your request.\n\nError: ${e.toString()}\n\nPlease check if the agent system is running and try again.",
-          isUser: false,
-          timestamp: DateTime.now(),
-          agentName: "System",
-          confidence: 0.0,
-        ));
-        _isLoading = false;
-      });
-
-      _showSnackBar('Failed to get response: ${e.toString()}', isError: true);
-    }
-
-    _scrollToBottom();
-  }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -192,71 +126,123 @@ class _AgentChatScreenState extends State<AgentChatScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        title: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(Icons.smart_toy, color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+    return Consumer<VoiceAssistantProvider>(
+      builder: (context, voiceProvider, child) {
+        return Scaffold(
+          backgroundColor: Colors.grey[50],
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.white,
+            title: Row(
               children: [
-                const Text(
-                  'AI Banking Assistant',
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
                   ),
+                  child: const Icon(Icons.smart_toy, color: Colors.white, size: 24),
                 ),
-                Row(
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: _isSystemHealthy ? Colors.green : Colors.red,
-                        borderRadius: BorderRadius.circular(4),
+                    const Text(
+                      'AI Banking Assistant',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _isSystemHealthy ? 'Online' : 'Offline',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: _isSystemHealthy ? Colors.green : Colors.red,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _isSystemHealthy ? 'Online' : 'Offline',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ],
             ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.black54),
-            onPressed: _checkSystemHealth,
-            tooltip: 'Check system status',
+            actions: [
+              // Voice Language Selector
+              const VoiceLanguageSelector(),
+              
+              // Voice Settings
+              IconButton(
+                icon: const Icon(Icons.settings_voice, color: Colors.black54),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => const VoiceSettingsDialog(),
+                  );
+                },
+                tooltip: 'Voice Settings',
+              ),
+              
+              // System Health Refresh
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.black54),
+                onPressed: _checkSystemHealth,
+                tooltip: 'Check system status',
+              ),
+            ],
           ),
-        ],
-      ),
       body: Column(
         children: [
+          // Voice Status Indicators
+          Column(
+            children: [
+              // Voice Error Display
+              if (voiceProvider.voiceState == VoiceState.error && voiceProvider.lastError != null)
+                VoiceErrorWidget(
+                  errorMessage: voiceProvider.lastError!,
+                  onRetry: () async {
+                    voiceProvider.clearError();
+                    await voiceProvider.initialize();
+                  },
+                  onDismiss: voiceProvider.clearError,
+                ),
+              
+              // Voice Recording Indicator
+              VoiceRecordingIndicator(
+                isRecording: voiceProvider.isListening,
+                recognizedText: voiceProvider.recognizedText,
+                onCancel: () {
+                  voiceProvider.stopListening();
+                  voiceProvider.clearRecognizedText();
+                },
+              ),
+              
+              // Voice Speaking Indicator
+              VoiceSpeakingIndicator(
+                isSpeaking: voiceProvider.isSpeaking,
+                currentText: voiceProvider.currentSpeakingText,
+                onStop: voiceProvider.stopSpeaking,
+              ),
+            ],
+          ),
+          
+          // Chat Messages
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -264,18 +250,206 @@ class _AgentChatScreenState extends State<AgentChatScreen>
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 final message = _messages[index];
-                return _buildMessageBubble(message);
+                return _buildMessageBubble(message, voiceProvider);
               },
             ),
           ),
+          
+          // Typing Indicator
           if (_isLoading) _buildTypingIndicator(),
-          _buildInputArea(),
+          
+          // Input Area with Voice
+          _buildVoiceInputArea(voiceProvider),
         ],
+      ),
+      );
+    });
+  }
+
+  // Voice-enabled input area
+  Widget _buildVoiceInputArea(VoiceAssistantProvider voiceProvider) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            // Text Input
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: TextField(
+                  controller: _messageController,
+                  maxLines: null,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    hintText: voiceProvider.isListening 
+                        ? 'Listening...' 
+                        : 'Ask about your banking needs...',
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                  ),
+                  onSubmitted: (_) => _sendMessage(),
+                  // Auto-populate with recognized speech
+                  onChanged: (text) {
+                    if (text != voiceProvider.recognizedText && 
+                        voiceProvider.recognizedText.isNotEmpty && 
+                        !voiceProvider.isListening) {
+                      // Clear recognized text after user starts typing
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        voiceProvider.clearRecognizedText();
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
+            
+            const SizedBox(width: 8),
+            
+            // Voice Button
+            VoiceWaveWidget(
+              isListening: voiceProvider.isListening,
+              soundLevel: voiceProvider.speechLevel,
+              onTap: () => _handleVoiceInput(voiceProvider),
+              size: 50,
+            ),
+            
+            const SizedBox(width: 8),
+            
+            // Send Button
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
+                ),
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: IconButton(
+                onPressed: _isLoading ? null : _sendMessage,
+                icon: Icon(
+                  _isLoading ? Icons.hourglass_empty : Icons.send,
+                  color: Colors.white,
+                ),
+                padding: const EdgeInsets.all(12),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildMessageBubble(ChatMessage message) {
+  // Handle voice input
+  Future<void> _handleVoiceInput(VoiceAssistantProvider voiceProvider) async {
+    if (voiceProvider.isListening) {
+      // Stop listening
+      await voiceProvider.stopListening();
+      
+      // If we have recognized text, populate the input field
+      if (voiceProvider.recognizedText.isNotEmpty) {
+        _messageController.text = voiceProvider.recognizedText;
+        voiceProvider.clearRecognizedText();
+      }
+    } else if (voiceProvider.isSpeaking) {
+      // Stop speaking
+      await voiceProvider.stopSpeaking();
+    } else {
+      // Start listening
+      await _startVoiceListening(voiceProvider);
+    }
+  }
+
+  // Start voice listening with proper initialization
+  Future<void> _startVoiceListening(VoiceAssistantProvider voiceProvider) async {
+    try {
+      // Initialize if needed
+      if (!voiceProvider.isInitialized) {
+        final initialized = await voiceProvider.initialize();
+        if (!initialized) {
+          _showVoicePermissionDialog();
+          return;
+        }
+      }
+
+      // Get current language from locale provider
+      final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+      final currentLanguage = localeProvider.locale?.languageCode ?? 'en';
+      
+      // Set voice language to match app language
+      await voiceProvider.setLanguage(currentLanguage);
+      
+      // Start listening
+      await voiceProvider.startListening();
+      
+      // Auto-send after speech recognition completes
+      _listenForSpeechComplete(voiceProvider);
+      
+    } catch (e) {
+      _showSnackBar('Failed to start voice input: $e', isError: true);
+    }
+  }
+
+  // Listen for speech recognition completion
+  void _listenForSpeechComplete(VoiceAssistantProvider voiceProvider) {
+    // Listen for state changes
+    void listener() {
+      if (voiceProvider.voiceState == VoiceState.processing && 
+          voiceProvider.recognizedText.isNotEmpty) {
+        
+        // Remove listener to avoid multiple calls
+        voiceProvider.removeListener(listener);
+        
+        // Auto-populate and send message
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (voiceProvider.recognizedText.isNotEmpty) {
+            _messageController.text = voiceProvider.recognizedText;
+            voiceProvider.clearRecognizedText();
+            _sendMessage(); // Auto-send voice message
+          }
+        });
+      }
+    }
+    
+    voiceProvider.addListener(listener);
+  }
+
+  // Show permission dialog for voice features
+  void _showVoicePermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => VoicePermissionDialog(
+        title: 'Microphone Permission Required',
+        message: 'To use voice features, please grant microphone access.',
+        onOpenSettings: () async {
+          Navigator.of(context).pop();
+          await openAppSettings();
+        },
+        onRetry: () async {
+          Navigator.of(context).pop();
+          final voiceProvider = Provider.of<VoiceAssistantProvider>(context, listen: false);
+          await voiceProvider.initialize();
+        },
+      ),
+    );
+  }
+
+  Widget _buildMessageBubble(ChatMessage message, VoiceAssistantProvider voiceProvider) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -303,37 +477,65 @@ class _AgentChatScreenState extends State<AgentChatScreen>
                   ? CrossAxisAlignment.end
                   : CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: message.isUser
-                        ? const Color(0xFF1976D2)
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(20).copyWith(
-                      bottomLeft: message.isUser
-                          ? const Radius.circular(20)
-                          : const Radius.circular(4),
-                      bottomRight: message.isUser
-                          ? const Radius.circular(4)
-                          : const Radius.circular(20),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Message bubble
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: message.isUser
+                              ? const Color(0xFF1976D2)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(20).copyWith(
+                            bottomLeft: message.isUser
+                                ? const Radius.circular(20)
+                                : const Radius.circular(4),
+                            bottomRight: message.isUser
+                                ? const Radius.circular(4)
+                                : const Radius.circular(20),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          message.text,
+                          style: TextStyle(
+                            color: message.isUser ? Colors.white : Colors.black87,
+                            fontSize: 16,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
+                    
+                    // TTS Button for agent messages
+                    if (!message.isUser && voiceProvider.isInitialized) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => _speakMessage(message.text, voiceProvider),
+                        icon: Icon(
+                          voiceProvider.isSpeaking && 
+                          voiceProvider.currentSpeakingText == message.text
+                              ? Icons.volume_up
+                              : Icons.volume_up_outlined,
+                          color: const Color(0xFF1976D2),
+                          size: 20,
+                        ),
+                        tooltip: 'Listen to message',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                       ),
                     ],
-                  ),
-                  child: Text(
-                    message.text,
-                    style: TextStyle(
-                      color: message.isUser ? Colors.white : Colors.black87,
-                      fontSize: 16,
-                      height: 1.4,
-                    ),
-                  ),
+                  ],
                 ),
+                
                 const SizedBox(height: 4),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -382,6 +584,26 @@ class _AgentChatScreenState extends State<AgentChatScreen>
         ],
       ),
     );
+  }
+
+  // Speak agent message using TTS
+  Future<void> _speakMessage(String text, VoiceAssistantProvider voiceProvider) async {
+    try {
+      if (voiceProvider.isSpeaking && voiceProvider.currentSpeakingText == text) {
+        // Stop current speech
+        await voiceProvider.stopSpeaking();
+      } else {
+        // Get current language
+        final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+        final currentLanguage = localeProvider.locale?.languageCode ?? 'en';
+        
+        // Set language and speak
+        await voiceProvider.setLanguage(currentLanguage);
+        await voiceProvider.speak(text);
+      }
+    } catch (e) {
+      _showSnackBar('Failed to speak message: $e', isError: true);
+    }
   }
 
   Widget _buildTypingIndicator() {
@@ -451,68 +673,78 @@ class _AgentChatScreenState extends State<AgentChatScreen>
     );
   }
 
-  Widget _buildInputArea() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: TextField(
-                  controller: _messageController,
-                  maxLines: null,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    hintText: 'Ask about your banking needs...',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                  ),
-                  onSubmitted: (_) => _sendMessage(),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
-                ),
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: IconButton(
-                onPressed: _isLoading ? null : _sendMessage,
-                icon: Icon(
-                  _isLoading ? Icons.hourglass_empty : Icons.send,
-                  color: Colors.white,
-                ),
-                padding: const EdgeInsets.all(12),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   String _formatTime(DateTime dateTime) {
     return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  // Enhanced send message with voice response
+  Future<void> _sendMessage() async {
+    final message = _messageController.text.trim();
+    if (message.isEmpty) return;
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    if (!authProvider.isAuthenticated) {
+      _showSnackBar('Please login to use the AI assistant', isError: true);
+      return;
+    }
+
+    // Add user message
+    setState(() {
+      _messages.add(ChatMessage(
+        text: message,
+        isUser: true,
+        timestamp: DateTime.now(),
+      ));
+      _isLoading = true;
+    });
+
+    _messageController.clear();
+    _scrollToBottom();
+
+    try {
+      // Query the agent
+      final response = await AgentApiService.queryAgent(
+        userId: authProvider.currentUser!.uid,
+        queryText: message,
+      );
+
+      // Add agent response
+      setState(() {
+        _messages.add(ChatMessage(
+          text: response.responseText,
+          isUser: false,
+          timestamp: DateTime.now(),
+          agentName: response.agentName,
+          confidence: response.confidence,
+        ));
+        _isLoading = false;
+      });
+
+      // Auto-speak response if enabled
+      final voiceProvider = Provider.of<VoiceAssistantProvider>(context, listen: false);
+      if (voiceProvider.autoSpeak && voiceProvider.isInitialized) {
+        await _speakMessage(response.responseText, voiceProvider);
+      }
+
+      // Provide haptic feedback for successful response
+      HapticFeedback.lightImpact();
+    } catch (e) {
+      // Add error message
+      setState(() {
+        _messages.add(ChatMessage(
+          text: "I apologize, but I'm having trouble processing your request.\n\nError: ${e.toString()}\n\nPlease check if the agent system is running and try again.",
+          isUser: false,
+          timestamp: DateTime.now(),
+          agentName: "System",
+          confidence: 0.0,
+        ));
+        _isLoading = false;
+      });
+
+      _showSnackBar('Failed to get response: ${e.toString()}', isError: true);
+    }
+
+    _scrollToBottom();
   }
 }

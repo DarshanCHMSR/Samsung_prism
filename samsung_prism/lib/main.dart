@@ -32,6 +32,7 @@ import 'providers/location_provider.dart' as location_provider;
 import 'providers/keystroke_auth_provider.dart';
 import 'providers/location_security_provider.dart';
 import 'providers/locale_provider.dart';
+import 'providers/voice_assistant_provider.dart';
 import 'utils/app_colors.dart';
 
 void main() async {
@@ -74,6 +75,7 @@ class _SamsungPrismBankingAppState extends State<SamsungPrismBankingApp> {
         ChangeNotifierProvider(create: (_) => KeystrokeAuthProvider()),
         ChangeNotifierProvider(create: (_) => LocationSecurityProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()..loadLocale()),
+        ChangeNotifierProvider(create: (_) => VoiceAssistantProvider()),
       ],
       child: Consumer<LocaleProvider>(
         builder: (context, localeProvider, _) {
