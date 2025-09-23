@@ -42,6 +42,9 @@ class _TransferScreenState extends State<TransferScreen> with SingleTickerProvid
       final balanceProvider = Provider.of<BalanceProvider>(context, listen: false);
       final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
       
+      // Set balance provider for real-time updates
+      transactionProvider.setBalanceProvider(balanceProvider);
+      
       final amount = double.parse(_amountController.text);
       final account = _accountController.text;
       final description = _descriptionController.text.isEmpty ? 'Money Transfer' : _descriptionController.text;

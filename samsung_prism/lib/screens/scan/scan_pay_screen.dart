@@ -192,6 +192,9 @@ class _ScanPayScreenState extends State<ScanPayScreen> with SingleTickerProvider
   void _processPayment(double amount, String merchant, String description) async {
     final balanceProvider = Provider.of<BalanceProvider>(context, listen: false);
     final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+    
+    // Set balance provider for real-time updates
+    transactionProvider.setBalanceProvider(balanceProvider);
 
     if (balanceProvider.balance < amount) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -203,35 +206,22 @@ class _ScanPayScreenState extends State<ScanPayScreen> with SingleTickerProvider
       return;
     }
 
-    // Update balance
-    final success = await balanceProvider.updateBalance(balanceProvider.balance - amount);
+    // Add transaction (which will automatically update balance via real-time sync)
+    await transactionProvider.addBankingTransaction(
+      amount: amount,
+      description: description,
+      type: TransactionType.sent,
+      category: TransactionCategory.payment,
+      recipientName: merchant,
+    );
 
-    if (success) {
-      // Add transaction
-      await transactionProvider.addTransaction(
-        amount: amount,
-        description: description,
-        type: TransactionType.sent,
-        recipientName: merchant,
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Payment of \$${amount.toStringAsFixed(2)} successful!'),
+          backgroundColor: AppColors.success,
+        ),
       );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Payment of \$${amount.toStringAsFixed(2)} successful!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Payment failed'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
     }
   }
 

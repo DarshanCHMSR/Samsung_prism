@@ -31,10 +31,12 @@ class BalanceProvider with ChangeNotifier {
           final data = doc.data() as Map<String, dynamic>;
           _balance = (data['balance'] ?? 0.0).toDouble();
           _accountNumber = data['accountNumber'] ?? '';
+          print('Balance fetched: $_balance'); // Debug log
         }
       }
       
       _setLoading(false);
+      notifyListeners(); // Explicitly notify listeners after balance update
     } catch (e) {
       _setError('Failed to fetch balance');
       _setLoading(false);
@@ -59,6 +61,13 @@ class BalanceProvider with ChangeNotifier {
       _setError('Failed to update balance');
       return false;
     }
+  }
+
+  /// Force refresh balance from Firebase (for real-time updates after transactions)
+  Future<void> forceRefreshBalance() async {
+    print('Force refreshing balance...');
+    await fetchBalance();
+    print('Force refresh completed. New balance: $_balance');
   }
   
   Future<bool> transferMoney(String recipientAccount, double amount, String description) async {

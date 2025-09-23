@@ -36,9 +36,86 @@ class _HomeScreenState extends State<HomeScreen> {
     final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
     final locationProvider = Provider.of<LocationProvider>(context, listen: false);
     
+    // Set up balance provider connection for real-time updates
+    transactionProvider.setBalanceProvider(balanceProvider);
+    
     balanceProvider.fetchBalance();
     transactionProvider.fetchTransactions();
     locationProvider.getCurrentLocation();
+  }
+
+  void _generateSampleTransactions() async {
+    final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+    final balanceProvider = Provider.of<BalanceProvider>(context, listen: false);
+    
+    // Set balance provider for real-time updates
+    transactionProvider.setBalanceProvider(balanceProvider);
+    
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(
+                  'Generating realistic banking transactions...',
+                  style: GoogleFonts.poppins(fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      
+      // Generate sample transactions
+      await transactionProvider.generateRealisticSampleTransactions();
+      
+      // Close loading dialog
+      Navigator.pop(context);
+      
+      // Refresh data
+      _loadData();
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Realistic banking transactions generated successfully!',
+            style: GoogleFonts.poppins(color: Colors.white),
+          ),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } catch (e) {
+      // Close loading dialog if still open
+      Navigator.of(context, rootNavigator: true).pop();
+      
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error generating transactions: $e',
+            style: GoogleFonts.poppins(color: Colors.white),
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
   }
 
   @override
@@ -503,13 +580,27 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadData,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryBlue,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: Text('Refresh'),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton(
+                              onPressed: _loadData,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: Text('Refresh'),
+                            ),
+                            const SizedBox(width: 12),
+                            ElevatedButton(
+                              onPressed: _generateSampleTransactions,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.accentGreen,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: Text('Generate Sample'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
