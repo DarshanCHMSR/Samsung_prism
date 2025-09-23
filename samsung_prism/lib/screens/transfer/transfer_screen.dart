@@ -49,21 +49,33 @@ class _TransferScreenState extends State<TransferScreen> with SingleTickerProvid
       final account = _accountController.text;
       final description = _descriptionController.text.isEmpty ? 'Money Transfer' : _descriptionController.text;
       
-      final success = await balanceProvider.transferMoney(account, amount, description);
-      
-      if (success) {
-        // Add transaction record
-        await transactionProvider.addTransaction(
-          amount: amount,
-          description: description,
-          type: TransactionType.sent,
-          recipientAccount: account,
-        );
-        
+      // Check if user has sufficient balance
+      if (balanceProvider.balance < amount) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Transfer completed successfully!'),
+              content: Text('Insufficient balance'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
+      
+      // Use the new banking transaction system with real-time balance updates
+      final referenceNumber = await transactionProvider.addBankingTransaction(
+        amount: amount,
+        description: description,
+        type: TransactionType.sent,
+        category: TransactionCategory.transfer,
+        recipientAccount: account,
+      );
+      
+      if (referenceNumber != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Transfer completed successfully!\nReference: $referenceNumber'),
               backgroundColor: AppColors.success,
             ),
           );
@@ -72,8 +84,8 @@ class _TransferScreenState extends State<TransferScreen> with SingleTickerProvid
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(balanceProvider.errorMessage ?? 'Transfer failed'),
+            const SnackBar(
+              content: Text('Transfer failed. Please try again.'),
               backgroundColor: AppColors.error,
             ),
           );
