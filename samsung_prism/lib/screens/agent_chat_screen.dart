@@ -38,7 +38,7 @@ class _AgentChatScreenState extends State<AgentChatScreen>
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
-  bool _isSystemHealthy = false;
+
   late AnimationController _animationController;
 
   @override
@@ -48,7 +48,6 @@ class _AgentChatScreenState extends State<AgentChatScreen>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _checkSystemHealth();
     _addWelcomeMessage();
   }
 
@@ -60,28 +59,7 @@ class _AgentChatScreenState extends State<AgentChatScreen>
     super.dispose();
   }
 
-  Future<void> _checkSystemHealth() async {
-    try {
-      // Use a shorter timeout for health check to prevent blocking
-      final healthFuture = AgentApiService.getSystemHealth()
-          .timeout(const Duration(seconds: 5));
-      
-      final health = await healthFuture;
-      if (mounted) {
-        setState(() {
-          _isSystemHealthy = health.systemHealthy;
-        });
-      }
-    } catch (e) {
-      print('Health check failed: $e');
-      // Don't block the UI, just assume system is available
-      if (mounted) {
-        setState(() {
-          _isSystemHealthy = true; // Optimistic default
-        });
-      }
-    }
-  }
+
 
   void _addWelcomeMessage() {
     setState(() {
@@ -159,26 +137,7 @@ class _AgentChatScreenState extends State<AgentChatScreen>
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: _isSystemHealthy ? Colors.green : Colors.red,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _isSystemHealthy ? 'Online' : 'Offline',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
+
                   ],
                 ),
               ],
@@ -197,13 +156,6 @@ class _AgentChatScreenState extends State<AgentChatScreen>
                   );
                 },
                 tooltip: 'Voice Settings',
-              ),
-              
-              // System Health Refresh
-              IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.black54),
-                onPressed: _checkSystemHealth,
-                tooltip: 'Check system status',
               ),
             ],
           ),

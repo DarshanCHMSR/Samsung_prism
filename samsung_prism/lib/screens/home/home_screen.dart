@@ -6,7 +6,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/balance_provider.dart';
 import '../../providers/transaction_provider.dart';
 import '../../providers/location_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../utils/app_colors.dart';
+import '../../widgets/language_selector.dart';
 import '../transfer/transfer_screen.dart';
 import '../scan/scan_pay_screen.dart';
 import '../transactions/transaction_history_screen.dart';
@@ -44,79 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     locationProvider.getCurrentLocation();
   }
 
-  void _generateSampleTransactions() async {
-    final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
-    final balanceProvider = Provider.of<BalanceProvider>(context, listen: false);
-    
-    // Set balance provider for real-time updates
-    transactionProvider.setBalanceProvider(balanceProvider);
-    
-    try {
-      // Show loading indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => Center(
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text(
-                  'Generating realistic banking transactions...',
-                  style: GoogleFonts.poppins(fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-      
-      // Generate sample transactions
-      await transactionProvider.generateRealisticSampleTransactions();
-      
-      // Close loading dialog
-      Navigator.pop(context);
-      
-      // Refresh data
-      _loadData();
-      
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Realistic banking transactions generated successfully!',
-            style: GoogleFonts.poppins(color: Colors.white),
-          ),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    } catch (e) {
-      // Close loading dialog if still open
-      Navigator.of(context, rootNavigator: true).pop();
-      
-      // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Error generating transactions: $e',
-            style: GoogleFonts.poppins(color: Colors.white),
-          ),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Good Morning',
+                    _getGreeting(),
                     style: GoogleFonts.poppins(
                       color: Colors.white.withOpacity(0.8),
                       fontSize: 14,
@@ -190,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Consumer<AuthProvider>(
                     builder: (context, authProvider, child) {
                       return Text(
-                        authProvider.user?.displayName ?? 'User',
+                        _getUserDisplayName(authProvider),
                         style: GoogleFonts.poppins(
                           color: Colors.white,
                           fontSize: 20,
@@ -201,19 +131,90 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                  onPressed: () {
-                    // TODO: Implement notifications
-                  },
-                ),
+              Row(
+                children: [
+                  // Language Selector Button
+                  Consumer<LocaleProvider>(
+                    builder: (context, localeProvider, child) {
+                      String languageCode = localeProvider.locale?.languageCode.toUpperCase() ?? 'EN';
+                      return Container(
+                        width: 45,
+                        height: 45,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () {
+                              LanguageSelector.showLanguageSelector(context);
+                            },
+                            child: Center(
+                              child: Text(
+                                languageCode,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  // Notification Button
+                  Container(
+                    width: 45,
+                    height: 45,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          // TODO: Implement notifications
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.info_outline, color: Colors.white),
+                                  const SizedBox(width: 8),
+                                  const Text('Notifications coming soon!'),
+                                ],
+                              ),
+                              backgroundColor: AppColors.primaryBlue,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.notifications_outlined,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -580,27 +581,26 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ElevatedButton(
-                              onPressed: _loadData,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryBlue,
-                                foregroundColor: Colors.white,
+                        Center(
+                          child: ElevatedButton(
+                            onPressed: _loadData,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryBlue,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Text('Refresh'),
                             ),
-                            const SizedBox(width: 12),
-                            ElevatedButton(
-                              onPressed: _generateSampleTransactions,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.accentGreen,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: Text('Generate Sample'),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.refresh, size: 18),
+                                const SizedBox(width: 8),
+                                Text('Refresh Data'),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
@@ -736,5 +736,44 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else if (hour < 21) {
+      return 'Good Evening';
+    } else {
+      return 'Good Night';
+    }
+  }
+
+  String _getUserDisplayName(AuthProvider authProvider) {
+    final user = authProvider.user;
+    if (user == null) return 'User';
+    
+    // Try to get display name first
+    if (user.displayName != null && user.displayName!.isNotEmpty) {
+      return user.displayName!;
+    }
+    
+    // If no display name, try to extract name from email
+    if (user.email != null && user.email!.isNotEmpty) {
+      final emailName = user.email!.split('@')[0];
+      // Capitalize first letter and replace dots/underscores with spaces
+      final cleanName = emailName
+          .replaceAll(RegExp(r'[._]'), ' ')
+          .split(' ')
+          .map((word) => word.isNotEmpty 
+              ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}' 
+              : word)
+          .join(' ');
+      return cleanName;
+    }
+    
+    return 'User';
   }
 }

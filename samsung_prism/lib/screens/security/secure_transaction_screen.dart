@@ -8,6 +8,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/location_security_provider.dart';
+import '../../providers/balance_provider.dart';
+import '../../providers/transaction_provider.dart';
 import '../../services/transaction_monitoring_service.dart';
 import '../../utils/app_colors.dart';
 
@@ -380,13 +382,40 @@ class _SecureTransactionScreenState extends State<SecureTransactionScreen> {
     });
 
     try {
+      final balanceProvider = Provider.of<BalanceProvider>(context, listen: false);
+      final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+      
+      // Set balance provider for real-time updates
+      transactionProvider.setBalanceProvider(balanceProvider);
+      
       final amount = double.parse(_amountController.text);
+      final recipient = _recipientController.text;
+      final description = _descriptionController.text.isEmpty ? 'Secure Transfer' : _descriptionController.text;
+      
+      // Check if user has sufficient balance
+      if (balanceProvider.balance < amount) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(FontAwesomeIcons.xmark, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Insufficient balance'),
+                ],
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
       
       // Check transaction security
       final securityResult = await _transactionService.checkTransactionSecurity(
         amount: amount,
-        transactionType: 'transfer',
-        description: _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
+        transactionType: 'secure_transfer',
+        description: description,
       );
 
       if (securityResult.alertRequired) {
@@ -400,34 +429,62 @@ class _SecureTransactionScreenState extends State<SecureTransactionScreen> {
         }
       }
 
-      // Record the transaction
-      await _transactionService.recordTransaction(
+      // Process the secure banking transaction with real-time balance updates
+      final referenceNumber = await transactionProvider.addBankingTransaction(
         amount: amount,
-        transactionType: 'transfer',
-        description: _descriptionController.text,
-        location: securityResult.currentLocation,
+        description: description,
+        type: TransactionType.sent,
+        category: TransactionCategory.transfer,
+        recipientAccount: recipient,
       );
 
-      // Show success message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(FontAwesomeIcons.check, color: Colors.white),
-                const SizedBox(width: 8),
-                Text('Transaction of ₹${amount.toStringAsFixed(2)} processed successfully'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
+      if (referenceNumber != null) {
+        // Also record in the monitoring service for security tracking
+        await _transactionService.recordTransaction(
+          amount: amount,
+          transactionType: 'secure_transfer',
+          description: description,
+          location: securityResult.currentLocation,
         );
 
-        // Clear form
-        _amountController.clear();
-        _recipientController.clear();
-        _descriptionController.clear();
+        // Show success message with reference number
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(FontAwesomeIcons.check, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text('Secure transfer of ₹${amount.toStringAsFixed(2)} processed successfully!\nReference: $referenceNumber'),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+
+          // Clear form
+          _amountController.clear();
+          _recipientController.clear();
+          _descriptionController.clear();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(FontAwesomeIcons.xmark, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Secure transfer failed. Please try again.'),
+                ],
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
 
     } catch (e) {
