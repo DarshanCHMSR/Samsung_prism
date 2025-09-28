@@ -6,10 +6,10 @@ A comprehensive **next-generation banking application ecosystem** featuring AI-p
 
 | 📋 **Resource** | 🔗 **Link** | 📝 **Description** |
 |----------------|-------------|-------------------|
-| 🎯 **Project Presentation** | [View PPT](YOUR_PPT_LINK_HERE) | Complete system overview, architecture, and features |
-| 🎬 **Live Demo Video** | [Watch Demo](YOUR_DEMO_VIDEO_LINK_HERE) | Full app walkthrough with AI assistant and voice features |
-| 📱 **APK Download** | [Download APK](YOUR_APK_LINK_HERE) | Ready-to-install Android application |
-| 🌐 **Web Demo** | [Try Online](YOUR_WEB_DEMO_LINK_HERE) | Browser-based app experience |
+| 🎯 **Project Presentation** | [View PPT]https://drive.google.com/drive/folders/1m30x0BiPaqbwMMpShEZiptMdCdLyRC08?usp=drive_link| Complete system overview, architecture, and features |
+| 🎬 **Live Demo Video** | [Watch Demo]https://drive.google.com/drive/folders/1MeBVhFFFMzZnZDY-X2JgWV7BSYOcYDeG?usp=drive_link |
+| 📱 **APK Download** | [Download APK]https://drive.google.com/file/d/1q8qXaEQ3PcWdbKt2DndiMrUmMESJjpsK/view?usp=drive_link  | Ready-to-install Android application |
+
 
 ## 🌟 System Overview
 
