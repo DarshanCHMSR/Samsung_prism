@@ -911,6 +911,68 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 ---
 
+## 📦 Submissions & Downloads
+
+### 📱 **Ready-to-Install APK**
+
+The Samsung Prism Banking App is available as a production-ready APK file for immediate testing and demonstration.
+
+#### 🔗 **Download Information**
+
+| 📋 **Detail** | 📄 **Information** |
+|---------------|-------------------|
+| **📁 File Location** | `build\app\outputs\flutter-apk\app-release.apk` |
+| **📊 File Size** | **75.8MB** |
+| **🎯 Build Type** | Production Release Build |
+| **📱 Platform** | Android (API 23+) |
+| **🔧 Architecture** | Universal APK (ARM64, ARMv7, x86_64) |
+
+#### 📱 **Installation Instructions**
+
+1. **Download APK**: [**Download Samsung Prism APK**](YOUR_APK_LINK_HERE) (75.8MB)
+2. **Enable Unknown Sources**: Settings → Security → Unknown Sources
+3. **Install APK**: Tap the downloaded file and follow installation prompts
+4. **Launch App**: Find "Samsung Prism" in your app drawer
+5. **Create Account**: Sign up with email or use demo credentials
+
+#### ✨ **What's Included in the APK**
+
+- **🤖 Complete AI Multi-Agent System** - All specialized banking agents
+- **🗣️ Voice Assistant** - Speech-to-text/text-to-speech capabilities  
+- **🌍 13 Language Support** - Full multilingual interface
+- **🔐 Keystroke Authentication** - Advanced behavioral biometrics
+- **📍 Location Security** - Trusted location management
+- **💰 Banking Features** - Transfers, balance, transaction history
+- **🎨 Modern UI/UX** - Complete Flutter Material Design interface
+- **🔥 Firebase Integration** - Cloud database and authentication
+
+#### 🚀 **Quick Demo Steps**
+
+1. **Install & Launch** the APK
+2. **Sign Up** with any email (demo mode available)
+3. **Explore AI Chat** - Try voice commands in multiple languages
+4. **Test Banking** - Perform transfers and view transaction history
+5. **Experience Security** - Try keystroke authentication features
+
+#### 📋 **System Requirements**
+
+- **Android Version**: 6.0+ (API Level 23+)
+- **RAM**: Minimum 2GB, Recommended 4GB+
+- **Storage**: 150MB free space
+- **Network**: Internet connection required
+- **Permissions**: Camera, Microphone, Location (optional)
+
+#### 🔄 **Alternative Download Options**
+
+- **📱 Direct APK**: [Download from Repository](YOUR_APK_LINK_HERE)
+- **🌐 Web Version**: [Try in Browser](YOUR_WEB_DEMO_LINK_HERE)
+- **🎬 Demo Video**: [Watch Features](YOUR_DEMO_VIDEO_LINK_HERE)
+- **📊 Presentation**: [View Technical Details](YOUR_PPT_LINK_HERE)
+
+> **💡 Pro Tip**: For the best experience, use the APK on a physical Android device rather than an emulator to fully experience the keystroke dynamics and location-based security features.
+
+---
+
 ## 📈 Monitoring & Analytics
 
 ### Application Monitoring
@@ -1177,7 +1239,7 @@ graph TB
 
 ---
 
-## 📚 Project Resources & Documentation
+## 📚Submissions
 
 ### 🎯 **Complete Project Overview**
 
