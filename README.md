@@ -965,8 +965,8 @@ The Samsung Prism Banking App is available as a production-ready APK file for im
 #### 🔄 **Alternative Download Options**
 
 - **📱 Direct APK**: [Download from Repository]https://drive.google.com/file/d/1q8qXaEQ3PcWdbKt2DndiMrUmMESJjpsK/view?usp=drive_link
-- **🎬 Demo Video**: [Watch Features](YOUR_DEMO_VIDEO_LINK_HERE)
-- **📊 Presentation**: [View Technical Details](YOUR_PPT_LINK_HERE)
+- **🎬 Demo Video**: [Watch Features]https://drive.google.com/drive/folders/1MeBVhFFFMzZnZDY-X2JgWV7BSYOcYDeG?usp=drive_link
+- **📊 Presentation**: [View Technical Details]https://drive.google.com/drive/folders/1m30x0BiPaqbwMMpShEZiptMdCdLyRC08?usp=drive_link
 
 > **💡 Pro Tip**: For the best experience, use the APK on a physical Android device rather than an emulator to fully experience the keystroke dynamics and location-based security features.
 
