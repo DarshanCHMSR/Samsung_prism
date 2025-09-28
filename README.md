@@ -929,7 +929,7 @@ The Samsung Prism Banking App is available as a production-ready APK file for im
 
 #### 📱 **Installation Instructions**
 
-1. **Download APK**: [**Download Samsung Prism APK**](YOUR_APK_LINK_HERE) (75.8MB)
+1. **Download APK**: [**Download Samsung Prism APK**]https://drive.google.com/file/d/1q8qXaEQ3PcWdbKt2DndiMrUmMESJjpsK/view?usp=drive_link (75.8MB)
 2. **Enable Unknown Sources**: Settings → Security → Unknown Sources
 3. **Install APK**: Tap the downloaded file and follow installation prompts
 4. **Launch App**: Find "Samsung Prism" in your app drawer
@@ -964,8 +964,7 @@ The Samsung Prism Banking App is available as a production-ready APK file for im
 
 #### 🔄 **Alternative Download Options**
 
-- **📱 Direct APK**: [Download from Repository](YOUR_APK_LINK_HERE)
-- **🌐 Web Version**: [Try in Browser](YOUR_WEB_DEMO_LINK_HERE)
+- **📱 Direct APK**: [Download from Repository]https://drive.google.com/file/d/1q8qXaEQ3PcWdbKt2DndiMrUmMESJjpsK/view?usp=drive_link
 - **🎬 Demo Video**: [Watch Features](YOUR_DEMO_VIDEO_LINK_HERE)
 - **📊 Presentation**: [View Technical Details](YOUR_PPT_LINK_HERE)
 
